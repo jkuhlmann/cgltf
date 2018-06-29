@@ -7,6 +7,8 @@ extern "C" {
 
 
 typedef unsigned long cgltf_size;
+typedef float cgltf_float;
+typedef int cgltf_bool;
 
 typedef enum cgltf_file_type
 {
@@ -125,16 +127,71 @@ typedef struct cgltf_attribute
 	cgltf_accessor* data;
 } cgltf_attribute;
 
-typedef struct cgltf_primitive
+
+typedef struct cgltf_rgba 
 {
+	cgltf_float r;
+	cgltf_float g;
+	cgltf_float b;
+	cgltf_float a;
+} cgltf_rgba;
+
+typedef struct cgltf_image 
+{
+	char* uri;
+} cgltf_image;
+
+typedef struct cgltf_sampler
+{
+	cgltf_float mag_filter;
+	cgltf_float min_filter;
+	cgltf_float wrap_s;
+	cgltf_float wrap_t;
+} cgltf_sampler;
+
+typedef struct cgltf_texture
+{
+	cgltf_image* image;
+	cgltf_sampler* sampler;
+} cgltf_texture;
+
+typedef struct cgltf_texture_view
+{	
+	cgltf_texture* texture;
+	cgltf_size texcoord;
+	cgltf_float scale;
+} cgltf_texture_view;
+
+typedef struct cgltf_pbr
+{
+	cgltf_texture_view base_color_texture;
+	cgltf_texture_view metallic_roughness_texture;
+
+	cgltf_rgba base_color;
+	cgltf_float metallic_factor;
+	cgltf_float roughness_factor;
+} cgltf_pbr;
+
+typedef struct cgltf_material
+{
+	char* name;
+	cgltf_pbr pbr;
+	cgltf_rgba emissive_color;
+	cgltf_texture_view normal_texture;
+	cgltf_texture_view emissive_texture;
+	cgltf_texture_view occlusion_texture;
+	cgltf_bool double_sided;
+} cgltf_material;
+
+typedef struct cgltf_primitive {
 	cgltf_primitive_type type;
 	cgltf_accessor* indices;
+	cgltf_material* material;
 	cgltf_attribute* attributes;
 	cgltf_size attributes_count;
 } cgltf_primitive;
 
-typedef struct cgltf_mesh
-{
+typedef struct cgltf_mesh {
 	char* name;
 	cgltf_primitive* primitives;
 	cgltf_size primitives_count;
@@ -148,6 +205,9 @@ typedef struct cgltf_data
 	cgltf_mesh* meshes;
 	cgltf_size meshes_count;
 
+	cgltf_material* materials;
+	cgltf_size material_count;
+
 	cgltf_accessor* accessors;
 	cgltf_size accessors_count;
 
@@ -156,6 +216,15 @@ typedef struct cgltf_data
 
 	cgltf_buffer* buffers;
 	cgltf_size buffers_count;
+
+	cgltf_image* images;
+	cgltf_size images_count;
+
+	cgltf_texture* textures;
+	cgltf_size textures_count;
+
+	cgltf_sampler* samplers;
+	cgltf_size samplers_count;
 
 	const void* bin;
 	cgltf_size bin_size;
@@ -181,6 +250,12 @@ void cgltf_free(cgltf_data* data);
  *
  *
  */
+
+#ifdef __INTELLISENSE__
+//Note: this makes MSVC intellisense work...
+#define CGLTF_IMPLEMENTATION
+#endif
+
 
 #ifdef CGLTF_IMPLEMENTATION
 
@@ -384,6 +459,22 @@ void cgltf_free(cgltf_data* data)
 		data->memory_free(data->memory_user_data, data->meshes[i].primitives);
 	}
 	data->memory_free(data->memory_user_data, data->meshes);
+
+	for (cgltf_size i = 0; i < data->material_count; ++i) 	
+	{
+		data->memory_free(data->memory_user_data, data->materials[i].name);
+	}
+
+	data->memory_free(data->memory_user_data, data->materials);
+
+	for (cgltf_size i = 0; i < data->images_count; ++i) 
+	{
+		data->memory_free(data->memory_user_data, data->images[i].uri);
+	}
+
+	data->memory_free(data->memory_user_data, data->images);
+	data->memory_free(data->memory_user_data, data->textures);
+	data->memory_free(data->memory_user_data, data->samplers);
 }
 
 #define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -128; }
@@ -434,6 +525,25 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 	return atoi(tmp);
 }
 
+static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk) {
+	char tmp[128];
+	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
+	int size = tok->end - tok->start;
+	strncpy(tmp,
+		(const char*)json_chunk + tok->start,
+		size);
+	tmp[size] = 0;
+	return atof(tmp);
+}
+
+static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk) {
+	//TODO: error handling?
+	if (memcmp(json_chunk + tok->start, "true", 4) == 0)
+		return 1;
+
+	return 0;
+}
+
 static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 {
 	if (tokens[i].type == JSMN_ARRAY)
@@ -474,6 +584,7 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 	++i;
 
 	out_prim->indices = (void* )-1;
+	out_prim->material = NULL;
 
 	for (int j = 0; j < size; ++j)
 	{
@@ -490,6 +601,13 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 			++i;
 			out_prim->indices =
 					(void*)(size_t)cgltf_json_to_int(tokens+i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "material") == 0)
+		{
+			++i;
+			out_prim->material =
+				(void*)(size_t)cgltf_json_to_int(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "attributes") == 0)
@@ -735,6 +853,304 @@ static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i,
 	return i;
 }
 
+static int cgltf_parse_json_rgba(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_rgba* out)
+{
+	int components = tokens[i].size;
+	if (components >= 2) {
+		out->r = cgltf_json_to_float(tokens + ++i, json_chunk);
+		out->g = cgltf_json_to_float(tokens + ++i, json_chunk);
+
+		if (components > 2)
+			out->b = cgltf_json_to_float(tokens + ++i, json_chunk);
+
+		if (components > 3)
+			out->a = cgltf_json_to_float(tokens + ++i, json_chunk);
+	}
+	else {
+		out->r = cgltf_json_to_float(tokens + ++i, json_chunk);
+		out->g = out->r;
+		out->b = out->r;
+		out->a = out->r;
+	}
+
+	return ++i;
+}
+
+static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_view* out) {
+
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "index") == 0)
+		{
+			++i;
+			out->texture = (void*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "texCoord") == 0)
+		{
+			++i;
+			out->texcoord = cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0) 
+		{
+			++i;
+			out->scale = cgltf_json_to_float(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_pbr(jsmntok_t const* tokens, int i,
+				     const uint8_t* json_chunk, cgltf_size mat_index, cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "metallicFactor") == 0)
+		{
+			++i;
+			out_data->materials[mat_index].pbr.metallic_factor = 
+				cgltf_json_to_float(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0) 
+		{
+			++i;
+			out_data->materials[mat_index].pbr.roughness_factor =
+				cgltf_json_to_float(tokens+i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "baseColorFactor") == 0)
+		{
+			i = cgltf_parse_json_rgba(tokens, i + 1, json_chunk,
+					&(out_data->materials[mat_index].pbr.base_color));
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "baseColorTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&(out_data->materials[mat_index].pbr.base_color_texture));
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "metallicRoughnessTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&(out_data->materials[mat_index].pbr.metallic_roughness_texture));
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* tokens, int i,
+	const uint8_t* json_chunk, cgltf_size img_index, cgltf_data* out_data) 
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	memset(&out_data->images[img_index], 0, sizeof(cgltf_image));
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j) 
+	{
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
+		{
+			++i;
+			int strsize = tokens[i].end - tokens[i].start;
+			out_data->images[img_index].uri = options->memory_alloc(options->memory_user_data, strsize + 1);
+			strncpy(out_data->images[img_index].uri,
+				(const char*)json_chunk + tokens[i].start,
+				strsize);
+			out_data->images[img_index].uri[strsize] = 0;
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tokens, int i,
+	const uint8_t* json_chunk, cgltf_size smp_index, cgltf_data* out_data) {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	memset(&out_data->samplers[smp_index], 0, sizeof(cgltf_sampler));
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "magFilter") == 0) 
+		{
+			++i;
+			out_data->samplers[smp_index].mag_filter
+				= cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "minFilter") == 0)
+		{
+			++i;
+			out_data->samplers[smp_index].min_filter
+				= cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapS") == 0)
+		{
+			++i;
+			out_data->samplers[smp_index].wrap_s
+				= cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0) 
+		{
+			++i;
+			out_data->samplers[smp_index].wrap_t
+				= cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+	}
+
+	return i;
+}
+
+
+static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tokens, int i,
+	const uint8_t* json_chunk, cgltf_size tex_index, cgltf_data* out_data) {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	memset(&out_data->textures[tex_index], 0, sizeof(cgltf_texture));
+	out_data->textures[tex_index].image = (void*)-1;
+	out_data->textures[tex_index].sampler = (void*)-1;
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "sampler") == 0)
+		{
+			++i;
+			out_data->textures[tex_index].sampler 
+				= (void*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0) 
+		{
+			++i;
+			out_data->textures[tex_index].image
+				= (void*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* tokens, int i,
+				     const uint8_t* json_chunk, cgltf_size mat_index, cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	cgltf_material* material = &out_data->materials[mat_index];
+
+	memset(material, 0, sizeof(cgltf_material));
+	material->emissive_texture.texture = (void*)-1;
+	material->emissive_texture.scale = 1.0f;
+
+	material->normal_texture.texture = (void*)-1;
+	material->normal_texture.scale = 1.0f;
+
+	material->occlusion_texture.texture = (void*)-1;
+	material->occlusion_texture.scale = 1.0f;
+
+	material->pbr.base_color_texture.texture = (void*)-1;
+	material->pbr.base_color_texture.scale = 1.0f;
+
+	material->pbr.metallic_roughness_texture.texture = (void*)-1;
+	material->pbr.metallic_roughness_texture.scale = 1.0f;
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
+		{
+			++i;
+			int strsize = tokens[i].end - tokens[i].start;
+			material->name = options->memory_alloc(options->memory_user_data, strsize + 1);
+			strncpy(material->name,
+				(const char*)json_chunk + tokens[i].start,
+				strsize);
+			material->name[strsize] = 0;
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "pbrMetallicRoughness") == 0) 
+		{
+			i = cgltf_parse_json_pbr(tokens, i+1, json_chunk, mat_index, out_data);
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "emissiveFactor") == 0) 
+		{
+			i = cgltf_parse_json_rgba(tokens, i + 1, json_chunk, 
+				&(material->emissive_color));
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "normalTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&(material->normal_texture));
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "emissiveTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&(material->emissive_texture));
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "occlusionTexture") == 0) 
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&(material->occlusion_texture));
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "doubleSided") == 0) 			
+		{
+			++i;
+			material->double_sided =
+				cgltf_json_to_bool(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_accessors(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
@@ -746,6 +1162,68 @@ static int cgltf_parse_json_accessors(cgltf_options* options, jsmntok_t const* t
 		i = cgltf_parse_json_accessor(tokens, i, json_chunk, j, out_data);
 		if (i < 0)
 		{
+			return i;
+		}
+	}
+	return i;
+}
+
+static int cgltf_parse_json_materials(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->material_count = tokens[i].size;
+	out_data->materials = options->memory_alloc(options->memory_user_data, sizeof(cgltf_material) * out_data->material_count);
+	++i;
+	for (cgltf_size j = 0; j < out_data->material_count; ++j)
+	{
+		i = cgltf_parse_json_material(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+	return i;
+}
+
+static int cgltf_parse_json_images(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data) {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->images_count = tokens[i].size;
+	out_data->images = options->memory_alloc(options->memory_user_data, sizeof(cgltf_image) * out_data->images_count);
+	++i;
+
+	for (cgltf_size j = 0; j < out_data->images_count; ++j) {
+		i = cgltf_parse_json_image(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0) {
+			return i;
+		}
+	}
+	return i;
+}
+
+static int cgltf_parse_json_textures(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data) {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->textures_count = tokens[i].size;
+	out_data->textures = options->memory_alloc(options->memory_user_data, sizeof(cgltf_texture) * out_data->textures_count);
+	++i;
+
+	for (cgltf_size j = 0; j < out_data->textures_count; ++j) {
+		i = cgltf_parse_json_texture(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0) {
+			return i;
+		}
+	}
+	return i;
+}
+
+static int cgltf_parse_json_samplers(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data) {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->samplers_count = tokens[i].size;
+	out_data->samplers = options->memory_alloc(options->memory_user_data, sizeof(cgltf_sampler) * out_data->samplers_count);
+	++i;
+
+	for (cgltf_size j = 0; j < out_data->samplers_count; ++j) {
+		i = cgltf_parse_json_sampler(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0) {
 			return i;
 		}
 	}
@@ -1020,6 +1498,26 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 			{
 				i = cgltf_parse_json_buffers(options, tokens, i+1, json_chunk, out_data);
 			}
+			else if (name_length == 9
+				&& strncmp((const char*)json_chunk + tok->start, "materials", 9) == 0) 		
+			{
+				i = cgltf_parse_json_materials(options, tokens, i+1, json_chunk, out_data);
+			}
+			else if (name_length == 6
+				&& strncmp((const char*)json_chunk + tok->start, "images", 6) == 0) 
+			{
+				i = cgltf_parse_json_images(options, tokens, i + 1, json_chunk, out_data);
+			}
+			else if (name_length == 8
+				&& strncmp((const char*)json_chunk + tok->start, "textures", 8) == 0) 
+			{
+				i = cgltf_parse_json_textures(options, tokens, i + 1, json_chunk, out_data);
+			}
+			else if (name_length == 8
+				&& strncmp((const char*)json_chunk + tok->start, "samplers", 8) == 0)
+			{
+				i = cgltf_parse_json_samplers(options, tokens, i + 1, json_chunk, out_data);
+			}
 			else
 			{
 				i = cgltf_skip_json(tokens, i+1);
@@ -1076,6 +1574,82 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		if (out_data->accessors[i].stride == 0)
 		{
 			out_data->accessors[i].stride = cgltf_calc_size(out_data->accessors[i].type, out_data->accessors[i].component_type);
+		}
+	}
+
+	for (cgltf_size i = 0; i < out_data->textures_count; ++i) 
+	{
+		if (out_data->textures[i].image == (void*)-1) 
+		{
+			out_data->textures[i].image = NULL;
+		}
+		else
+		{
+			out_data->textures[i].image = 
+				&out_data->images[(cgltf_size)out_data->textures[i].image];
+		}
+
+		if (out_data->textures[i].sampler == (void*)-1)
+		{
+			out_data->textures[i].sampler = NULL;
+		}
+		else 
+		{
+			out_data->textures[i].sampler =
+				&out_data->samplers[(cgltf_size)out_data->textures[i].sampler];
+		}
+	}
+
+	for (cgltf_size i = 0; i < out_data->material_count; ++i)
+	{
+		if (out_data->materials[i].emissive_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].emissive_texture.texture = NULL;
+		}
+		else
+		{
+			out_data->materials[i].emissive_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].emissive_texture.texture];
+		}
+
+		if (out_data->materials[i].normal_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].normal_texture.texture = NULL;
+		}
+		else 
+		{
+			out_data->materials[i].normal_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].normal_texture.texture];
+		}
+
+		if (out_data->materials[i].occlusion_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].occlusion_texture.texture = NULL;
+		}
+		else
+		{
+			out_data->materials[i].occlusion_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].occlusion_texture.texture];
+		}
+
+		if (out_data->materials[i].pbr.base_color_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].pbr.base_color_texture.texture = NULL;
+		}
+		else
+		{
+			out_data->materials[i].pbr.base_color_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].pbr.base_color_texture.texture];
+		}
+
+		if (out_data->materials[i].pbr.metallic_roughness_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].pbr.metallic_roughness_texture.texture = NULL;
+		}
+		else 
+		{
+			out_data->materials[i].pbr.metallic_roughness_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].pbr.metallic_roughness_texture.texture];
 		}
 	}
 
