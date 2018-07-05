@@ -19,7 +19,7 @@ def collect_files(path, type):
                 if result != 0:
                     num_errors = num_errors + 1
                     print("Error.")
-                    sys.exit(result)
+                    sys.exit(1)
         elif os.path.isdir(file_path):
             collect_files(file_path, type)
 

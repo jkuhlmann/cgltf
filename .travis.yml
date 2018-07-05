@@ -1,0 +1,12 @@
+os:
+  - linux
+  - osx
+language: c
+compiler:
+  - gcc
+  - clang
+sudo: false
+script:
+  - cd test/
+  - ./test_all.py
+
