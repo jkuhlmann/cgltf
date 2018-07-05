@@ -139,6 +139,8 @@ typedef struct cgltf_rgba
 typedef struct cgltf_image 
 {
 	char* uri;
+	cgltf_buffer_view* buffer_view;
+	char* mime_type;
 } cgltf_image;
 
 typedef struct cgltf_sampler
@@ -468,6 +470,7 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->images_count; ++i) 
 	{
 		data->memory_free(data->memory_user_data, data->images[i].uri);
+		data->memory_free(data->memory_user_data, data->images[i].mime_type);
 	}
 
 	data->memory_free(data->memory_user_data, data->images);
@@ -965,6 +968,8 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 	int size = tokens[i].size;
 	++i;
 
+	out_data->images[img_index].buffer_view = (void*)-1;
+
 	for (int j = 0; j < size; ++j) 
 	{
 		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
@@ -976,6 +981,24 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 				(const char*)json_chunk + tokens[i].start,
 				strsize);
 			out_data->images[img_index].uri[strsize] = 0;
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "bufferView") == 0)
+		{
+			++i;
+			out_data->images[img_index].buffer_view =
+					(void*)(size_t)cgltf_json_to_int(tokens+i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "mimeType") == 0)
+		{
+			++i;
+			int strsize = tokens[i].end - tokens[i].start;
+			out_data->images[img_index].mime_type = options->memory_alloc(options->memory_user_data, strsize + 1);
+			strncpy(out_data->images[img_index].mime_type,
+				(const char*)json_chunk + tokens[i].start,
+				strsize);
+			out_data->images[img_index].mime_type[strsize] = 0;
 			++i;
 		}
 		else
@@ -1237,7 +1260,7 @@ static int cgltf_parse_json_buffer_view(jsmntok_t const* tokens, int i,
 	int size = tokens[i].size;
 	++i;
 
-	out_data->buffer_views[buffer_view_index].stride = 0;
+	memset(&out_data->buffer_views[buffer_view_index], 0, sizeof(cgltf_buffer_view));
 
 	for (int j = 0; j < size; ++j)
 	{
@@ -1595,6 +1618,19 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		{
 			out_data->textures[i].sampler =
 				&out_data->samplers[(cgltf_size)out_data->textures[i].sampler];
+		}
+	}
+
+	for (cgltf_size i = 0; i < out_data->images_count; ++i)
+	{
+		if (out_data->images[i].buffer_view == (void*)-1)
+		{
+			out_data->images[i].buffer_view = NULL;
+		}
+		else
+		{
+			out_data->images[i].buffer_view
+					= &out_data->buffer_views[(cgltf_size)out_data->images[i].buffer_view];
 		}
 	}
 
