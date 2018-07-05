@@ -24,11 +24,11 @@ cgltf supports this:
 - glTF 2.0
 - glb (binary files) and gltf (JSON files)
 - meshes (including accessors, buffer views, buffers)
+- materials (including textures, samplers, images)
 
 cgltf does **not** yet support this:
 - animations
 - scenes and nodes
-- materials
 - any extensions (like Draco, for example)
 
 
@@ -55,7 +55,7 @@ C headers being used:
 #include <stdlib.h>
 ```
 
-Note, this library integrates the [JSMN JSON parser](https://github.com/zserge/jsmn) into its source.
+Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserge/jsmn) embedded in its source.
 
 ## Testing
 There is a Python script in the `test/` folder that retrieves the glTF sample files from the glTF-Sample-Models repository and runs the library against all gltf and glb files in there.
