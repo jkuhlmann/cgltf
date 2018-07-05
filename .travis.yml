@@ -8,5 +8,5 @@ compiler:
 sudo: false
 script:
   - cd test/
-  - test/test_all.py
+  - ./test_all.py
 
