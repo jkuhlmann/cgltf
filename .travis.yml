@@ -1,7 +1,7 @@
 os:
   - linux
   - osx
-language: cpp
+language: c
 compiler:
   - gcc
   - clang

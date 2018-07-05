@@ -1,6 +1,7 @@
 # cgltf
 **Single-file/stb-style C glTF loader**
 
+[![Build Status](https://travis-ci.org/jkuhlmann/cgltf.svg?branch=master)](https://travis-ci.org/jkuhlmann/cgltf)
 
 ## Usage
 ```c
