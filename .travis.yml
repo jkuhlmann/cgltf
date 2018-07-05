@@ -7,5 +7,6 @@ compiler:
   - clang
 sudo: false
 script:
+  - cd test/
   - test/test_all.py
 
