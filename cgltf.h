@@ -206,7 +206,7 @@ typedef struct cgltf_data
 	cgltf_size meshes_count;
 
 	cgltf_material* materials;
-	cgltf_size material_count;
+	cgltf_size materials_count;
 
 	cgltf_accessor* accessors;
 	cgltf_size accessors_count;
@@ -248,14 +248,12 @@ void cgltf_free(cgltf_data* data);
  * Stop now, if you are only interested in the API.
  * Below, you find the implementation.
  *
- *
  */
 
 #ifdef __INTELLISENSE__
-//Note: this makes MSVC intellisense work...
+/* This makes MSVC intellisense work. */
 #define CGLTF_IMPLEMENTATION
 #endif
-
 
 #ifdef CGLTF_IMPLEMENTATION
 
@@ -460,7 +458,7 @@ void cgltf_free(cgltf_data* data)
 	}
 	data->memory_free(data->memory_user_data, data->meshes);
 
-	for (cgltf_size i = 0; i < data->material_count; ++i) 	
+	for (cgltf_size i = 0; i < data->materials_count; ++i)
 	{
 		data->memory_free(data->memory_user_data, data->materials[i].name);
 	}
@@ -1171,10 +1169,10 @@ static int cgltf_parse_json_accessors(cgltf_options* options, jsmntok_t const* t
 static int cgltf_parse_json_materials(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
-	out_data->material_count = tokens[i].size;
-	out_data->materials = options->memory_alloc(options->memory_user_data, sizeof(cgltf_material) * out_data->material_count);
+	out_data->materials_count = tokens[i].size;
+	out_data->materials = options->memory_alloc(options->memory_user_data, sizeof(cgltf_material) * out_data->materials_count);
 	++i;
-	for (cgltf_size j = 0; j < out_data->material_count; ++j)
+	for (cgltf_size j = 0; j < out_data->materials_count; ++j)
 	{
 		i = cgltf_parse_json_material(options, tokens, i, json_chunk, j, out_data);
 		if (i < 0)
@@ -1600,7 +1598,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		}
 	}
 
-	for (cgltf_size i = 0; i < out_data->material_count; ++i)
+	for (cgltf_size i = 0; i < out_data->materials_count; ++i)
 	{
 		if (out_data->materials[i].emissive_texture.texture == (void*)-1)
 		{
