@@ -1,13 +1,15 @@
 #ifndef CGLTF_H_INCLUDED__
 #define CGLTF_H_INCLUDED__
 
+#include <stddef.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
-typedef unsigned long cgltf_size;
+typedef size_t cgltf_size;
 typedef float cgltf_float;
+typedef int cgltf_int;
 typedef int cgltf_bool;
 
 typedef enum cgltf_file_type
@@ -145,10 +147,10 @@ typedef struct cgltf_image
 
 typedef struct cgltf_sampler
 {
-	cgltf_float mag_filter;
-	cgltf_float min_filter;
-	cgltf_float wrap_s;
-	cgltf_float wrap_t;
+	cgltf_int mag_filter;
+	cgltf_int min_filter;
+	cgltf_int wrap_s;
+	cgltf_int wrap_t;
 } cgltf_sampler;
 
 typedef struct cgltf_texture
@@ -299,7 +301,7 @@ typedef struct {
 	int toksuper; /* superior token node, e.g parent object or array */
 } jsmn_parser;
 void jsmn_init(jsmn_parser *parser);
-int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t *tokens, unsigned int num_tokens);
+int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t *tokens, size_t num_tokens);
 /*
  * -- jsmn.h end --
  */
@@ -492,8 +494,8 @@ static char cgltf_to_lower(char c)
 static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, const char* str)
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_STRING);
-	int const str_len = strlen(str);
-	int const name_length = tok->end - tok->start;
+	size_t const str_len = strlen(str);
+	size_t const name_length = tok->end - tok->start;
 	if (name_length == str_len)
 	{
 		for (int i = 0; i < str_len; ++i)
@@ -534,7 +536,7 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 		(const char*)json_chunk + tok->start,
 		size);
 	tmp[size] = 0;
-	return atof(tmp);
+	return (cgltf_float)atof(tmp);
 }
 
 static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk) {
@@ -1850,7 +1852,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
  * Parse JSON string and fill tokens.
  */
 int jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
-	       jsmntok_t *tokens, unsigned int num_tokens) {
+	       jsmntok_t *tokens, size_t num_tokens) {
 	int r;
 	int i;
 	jsmntok_t *token;
