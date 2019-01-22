@@ -60,19 +60,12 @@ typedef enum cgltf_attribute_type
 typedef enum cgltf_component_type
 {
 	cgltf_component_type_invalid,
-	cgltf_component_type_rgb_32f,
-	cgltf_component_type_rgba_32f,
-	cgltf_component_type_rg_32f,
-	cgltf_component_type_rg_8,
-	cgltf_component_type_rg_16,
-	cgltf_component_type_rgba_8,
-	cgltf_component_type_rgba_16,
-	cgltf_component_type_r_8,
-	cgltf_component_type_r_8u,
-	cgltf_component_type_r_16,
-	cgltf_component_type_r_16u,
-	cgltf_component_type_r_32u,
-	cgltf_component_type_r_32f,
+	cgltf_component_type_r_8, /* BYTE */
+	cgltf_component_type_r_8u, /* UNSIGNED_BYTE */
+	cgltf_component_type_r_16, /* SHORT */
+	cgltf_component_type_r_16u, /* UNSIGNED_SHORT */
+	cgltf_component_type_r_32u, /* UNSIGNED_INT */
+	cgltf_component_type_r_32f, /* FLOAT */
 } cgltf_component_type;
 
 typedef enum cgltf_type
@@ -1402,27 +1395,6 @@ static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type componen
 
 	switch (component_type)
 	{
-	case cgltf_component_type_rgb_32f:
-		size = 12;
-		break;
-	case cgltf_component_type_rgba_32f:
-		size = 16;
-		break;
-	case cgltf_component_type_rg_32f:
-		size = 8;
-		break;
-	case cgltf_component_type_rg_8:
-		size = 2;
-		break;
-	case cgltf_component_type_rg_16:
-		size = 4;
-		break;
-	case cgltf_component_type_rgba_8:
-		size = 4;
-		break;
-	case cgltf_component_type_rgba_16:
-		size = 8;
-		break;
 	case cgltf_component_type_r_8:
 	case cgltf_component_type_r_8u:
 		size = 1;
