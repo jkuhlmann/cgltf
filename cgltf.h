@@ -1933,15 +1933,8 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	{
 		for (cgltf_size j = 0; j < out_data->nodes[i].children_count; ++j)
 		{
-			if (out_data->nodes[i].children[j] == (void*)-1)
-			{
-				out_data->nodes[i].children[j] = NULL;
-			}
-			else
-			{
-				out_data->nodes[i].children[j]
-					= &out_data->nodes[(cgltf_size)out_data->nodes[i].children[j]];
-			}
+			out_data->nodes[i].children[j]
+				= &out_data->nodes[(cgltf_size)out_data->nodes[i].children[j]];
 		}
 
 		if (out_data->nodes[i].mesh == (void*)-1)
@@ -1959,15 +1952,8 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	{
 		for (cgltf_size j = 0; j < out_data->scenes[i].nodes_count; ++j)
 		{
-			if (out_data->scenes[i].nodes[j] == (void*)-1)
-			{
-				out_data->scenes[i].nodes[j] = NULL;
-			}
-			else
-			{
-				out_data->scenes[i].nodes[j]
-					= &out_data->nodes[(cgltf_size)out_data->scenes[i].nodes[j]];
-			}
+			out_data->scenes[i].nodes[j]
+				= &out_data->nodes[(cgltf_size)out_data->scenes[i].nodes[j]];
 		}
 	}
 
