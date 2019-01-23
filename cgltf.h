@@ -101,6 +101,20 @@ typedef enum cgltf_alpha_mode
 	cgltf_alpha_mode_blend,
 } cgltf_alpha_mode;
 
+typedef enum cgltf_animation_path_type {
+	cgltf_animation_path_type_invalid,
+	cgltf_animation_path_type_translation,
+	cgltf_animation_path_type_rotation,
+	cgltf_animation_path_type_scale,
+	cgltf_animation_path_type_weights,
+} cgltf_animation_path_type;
+
+typedef enum cgltf_interpolation_type {
+	cgltf_interpolation_type_linear,
+	cgltf_interpolation_type_step,
+	cgltf_interpolation_type_cubic_spline,
+} cgltf_interpolation_type;
+
 typedef struct cgltf_buffer
 {
 	cgltf_size size;
@@ -230,6 +244,26 @@ typedef struct cgltf_scene {
 	cgltf_size nodes_count;
 } cgltf_scene;
 
+typedef struct cgltf_animation_sampler {
+	cgltf_accessor* input;
+	cgltf_accessor* output;
+	cgltf_interpolation_type interpolation;
+} cgltf_animation_sampler;
+
+typedef struct cgltf_animation_channel {
+	cgltf_animation_sampler* sampler;
+	cgltf_node* target_node;
+	cgltf_animation_path_type target_path;
+} cgltf_animation_channel;
+
+typedef struct cgltf_animation {
+	char* name;
+	cgltf_animation_sampler* samplers;
+	cgltf_size samplers_count;
+	cgltf_animation_channel* channels;
+	cgltf_size channels_count;
+} cgltf_animation;
+
 typedef struct cgltf_data
 {
 	unsigned version;
@@ -267,6 +301,9 @@ typedef struct cgltf_data
 	cgltf_size scenes_count;
 
 	cgltf_scene* scene;
+
+	cgltf_animation* animations;
+	cgltf_size animations_count;
 
 	const void* bin;
 	cgltf_size bin_size;
@@ -606,7 +643,16 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory_free(data->memory_user_data, data->scenes);
 
-  data->memory_free(data->memory_user_data, data->file_data);
+	for (cgltf_size i = 0; i < data->animations_count; ++i)
+	{
+		data->memory_free(data->memory_user_data, data->animations[i].name);
+		data->memory_free(data->memory_user_data, data->animations[i].samplers);
+		data->memory_free(data->memory_user_data, data->animations[i].channels);
+	}
+
+	data->memory_free(data->memory_user_data, data->animations);
+
+	data->memory_free(data->memory_user_data, data->file_data);
 }
 
 #define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -128; }
@@ -1791,6 +1837,217 @@ static int cgltf_parse_json_scenes(cgltf_options* options, jsmntok_t const* toke
 	return i;
 }
 
+static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t const* tokens, int i,
+				      const uint8_t* json_chunk,
+				      cgltf_animation_sampler* out_sampler)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	int size = tokens[i].size;
+	++i;
+
+	out_sampler->interpolation = cgltf_interpolation_type_linear;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "input") == 0)
+		{
+			++i;
+			out_sampler->input = (cgltf_accessor*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "output") == 0)
+		{
+			++i;
+			out_sampler->output = (cgltf_accessor*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "interpolation") == 0)
+		{
+			++i;
+			if (cgltf_json_strcmp(tokens + i, json_chunk, "LINEAR") == 0)
+			{
+				out_sampler->interpolation = cgltf_interpolation_type_linear;
+			}
+			else if (cgltf_json_strcmp(tokens + i, json_chunk, "STEP") == 0)
+			{
+				out_sampler->interpolation = cgltf_interpolation_type_step;
+			}
+			else if (cgltf_json_strcmp(tokens + i, json_chunk, "CUBICSPLINE") == 0)
+			{
+				out_sampler->interpolation = cgltf_interpolation_type_cubic_spline;
+			}
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t const* tokens, int i,
+				      const uint8_t* json_chunk,
+				      cgltf_animation_channel* out_channel)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	int size = tokens[i].size;
+	++i;
+
+	out_channel->target_node = (cgltf_node*)-1;
+	out_channel->target_path = cgltf_animation_path_type_invalid;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "sampler") == 0)
+		{
+			++i;
+			out_channel->sampler = (cgltf_animation_sampler*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "target") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int target_size = tokens[i].size;
+			++i;
+
+			for (int k = 0; k < target_size; ++k)
+			{
+				if (cgltf_json_strcmp(tokens+i, json_chunk, "node") == 0)
+				{
+					++i;
+					out_channel->target_node = (cgltf_node*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+					++i;
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "path") == 0)
+				{
+					++i;
+					if (cgltf_json_strcmp(tokens+i, json_chunk, "translation") == 0)
+					{
+						out_channel->target_path = cgltf_animation_path_type_translation;
+					}
+					else if (cgltf_json_strcmp(tokens+i, json_chunk, "rotation") == 0)
+					{
+						out_channel->target_path = cgltf_animation_path_type_rotation;
+					}
+					else if (cgltf_json_strcmp(tokens+i, json_chunk, "scale") == 0)
+					{
+						out_channel->target_path = cgltf_animation_path_type_scale;
+					}
+					else if (cgltf_json_strcmp(tokens+i, json_chunk, "weights") == 0)
+					{
+						out_channel->target_path = cgltf_animation_path_type_weights;
+					}
+					++i;
+				}
+				else
+				{
+					i = cgltf_skip_json(tokens, i+1);
+				}
+			}
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* tokens, int i,
+				   const uint8_t* json_chunk, cgltf_size animation_index,
+				   cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	out_data->animations[animation_index].name = NULL;
+	out_data->animations[animation_index].samplers = NULL;
+	out_data->animations[animation_index].samplers_count = 0;
+	out_data->animations[animation_index].channels = NULL;
+	out_data->animations[animation_index].channels_count = 0;
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
+		{
+			++i;
+			int strsize = tokens[i].end - tokens[i].start;
+			out_data->animations[animation_index].name = (char*)options->memory_alloc(options->memory_user_data, strsize + 1);
+			strncpy(out_data->animations[animation_index].name,
+				(const char*)json_chunk + tokens[i].start,
+				strsize);
+			out_data->animations[animation_index].name[strsize] = 0;
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "samplers") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+			out_data->animations[animation_index].samplers_count = tokens[i].size;
+			out_data->animations[animation_index].samplers = (cgltf_animation_sampler*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_animation_sampler) * tokens[i].size);
+			++i;
+
+			for (cgltf_size k = 0; k < out_data->animations[animation_index].samplers_count; ++k)
+			{
+				i = cgltf_parse_json_animation_sampler(options, tokens, i, json_chunk, &out_data->animations[animation_index].samplers[k]);
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "channels") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+			out_data->animations[animation_index].channels_count = tokens[i].size;
+			out_data->animations[animation_index].channels = (cgltf_animation_channel*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_animation_channel) * tokens[i].size);
+			++i;
+
+			for (cgltf_size k = 0; k < out_data->animations[animation_index].channels_count; ++k)
+			{
+				i = cgltf_parse_json_animation_channel(options, tokens, i, json_chunk, &out_data->animations[animation_index].channels[k]);
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+static int cgltf_parse_json_animations(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->animations_count = tokens[i].size;
+	out_data->animations = (cgltf_animation*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_animation) * out_data->animations_count);
+	++i;
+	for (cgltf_size j = 0 ; j < out_data->animations_count; ++j)
+	{
+		i = cgltf_parse_json_animation(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+	return i;
+}
+
 static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
 {
 	cgltf_size size = 0;
@@ -1933,6 +2190,11 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				++i;
 				out_data->scene = (cgltf_scene*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
 				++i;
+			}
+			else if (name_length == 10
+				&& strncmp((const char*)json_chunk + tok->start, "animations", 10) == 0)
+			{
+				i = cgltf_parse_json_animations(options, tokens, i + 1, json_chunk, out_data);
 			}
 			else
 			{
@@ -2124,6 +2386,33 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	{
 		out_data->scene
 			= &out_data->scenes[(cgltf_size)out_data->scene];
+	}
+
+	for (cgltf_size i = 0; i < out_data->animations_count; ++i)
+	{
+		for (cgltf_size j = 0; j < out_data->animations[i].samplers_count; ++j)
+		{
+			out_data->animations[i].samplers[j].input
+				= &out_data->accessors[(cgltf_size)out_data->animations[i].samplers[j].input];
+			out_data->animations[i].samplers[j].output
+				= &out_data->accessors[(cgltf_size)out_data->animations[i].samplers[j].output];
+		}
+
+		for (cgltf_size j = 0; j < out_data->animations[i].channels_count; ++j)
+		{
+			out_data->animations[i].channels[j].sampler
+				= &out_data->animations[i].samplers[(cgltf_size)out_data->animations[i].channels[j].sampler];
+
+			if (out_data->animations[i].channels[j].target_node == (void*)-1)
+			{
+				out_data->animations[i].channels[j].target_node = NULL;
+			}
+			else
+			{
+				out_data->animations[i].channels[j].target_node
+					= &out_data->nodes[(cgltf_size)out_data->animations[i].channels[j].target_node];
+			}
+		}
 	}
 
 	return cgltf_result_success;
