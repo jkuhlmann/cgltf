@@ -731,30 +731,25 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 	char tmp[128];
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	int size = tok->end - tok->start;
-	strncpy(tmp,
-		(const char*)json_chunk + tok->start,
-		size);
+	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return atoi(tmp);
 }
 
-static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk) {
+static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
 	char tmp[128];
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	int size = tok->end - tok->start;
-	strncpy(tmp,
-		(const char*)json_chunk + tok->start,
-		size);
+	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return (cgltf_float)atof(tmp);
 }
 
-static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk) {
-	//TODO: error handling?
-	if (memcmp(json_chunk + tok->start, "true", 4) == 0)
-		return 1;
-
-	return 0;
+static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
+	int size = tok->end - tok->start;
+	return size == 4 && memcmp(json_chunk + tok->start, "true", 4) == 0;
 }
 
 static char* cgltf_json_to_string_alloc(cgltf_options* options, jsmntok_t const* tok, const uint8_t* json_chunk)
