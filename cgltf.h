@@ -251,7 +251,7 @@ typedef struct cgltf_data
 	cgltf_scene* scenes;
 	cgltf_size scenes_count;
 
-	cgltf_scene* main_scene;
+	cgltf_scene* scene;
 
 	const void* bin;
 	cgltf_size bin_size;
@@ -1707,7 +1707,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		return cgltf_result_invalid_json;
 	}
 
-	out_data->main_scene = (cgltf_scene*)-1;
+	out_data->scene = (cgltf_scene*)-1;
 
 	// The root is an object.
 
@@ -1772,7 +1772,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				&& strncmp((const char*)json_chunk + tok->start, "scene", 5) == 0)
 			{
 				++i;
-				out_data->main_scene = (cgltf_scene*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+				out_data->scene = (cgltf_scene*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
 				++i;
 			}
 			else
@@ -1957,14 +1957,14 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		}
 	}
 
-	if (out_data->main_scene == (void*)-1)
+	if (out_data->scene == (void*)-1)
 	{
-		out_data->main_scene = NULL;
+		out_data->scene = NULL;
 	}
 	else
 	{
-		out_data->main_scene
-			= &out_data->scenes[(cgltf_size)out_data->main_scene];
+		out_data->scene
+			= &out_data->scenes[(cgltf_size)out_data->scene];
 	}
 
 	return cgltf_result_success;
