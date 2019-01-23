@@ -35,6 +35,9 @@ typedef enum cgltf_result
 	cgltf_result_unknown_format,
 	cgltf_result_invalid_json,
 	cgltf_result_invalid_options,
+	cgltf_result_file_not_found,
+	cgltf_result_io_error,
+	cgltf_result_out_of_memory,
 } cgltf_result;
 
 typedef enum cgltf_buffer_view_type
@@ -219,6 +222,7 @@ typedef struct cgltf_data
 {
 	unsigned version;
 	cgltf_file_type file_type;
+	void* file_data;
 
 	cgltf_mesh* meshes;
 	cgltf_size meshes_count;
@@ -265,6 +269,11 @@ cgltf_result cgltf_parse(
 		cgltf_size size,
 		cgltf_data* out_data);
 
+cgltf_result cgltf_parse_file(
+		const cgltf_options* options,
+		const char* path,
+		cgltf_data* out_data);
+
 void cgltf_free(cgltf_data* data);
 
 #endif /* #ifndef CGLTF_H_INCLUDED__ */
@@ -286,6 +295,7 @@ void cgltf_free(cgltf_data* data);
 #include <stdint.h> /* For uint8_t, uint32_t */
 #include <string.h> /* For strncpy */
 #include <stdlib.h> /* For malloc, free */
+#include <stdio.h> /* For fopen */
 
 
 /*
@@ -461,6 +471,64 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 	return cgltf_result_success;
 }
 
+cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cgltf_data* out_data)
+{
+	if (options == NULL)
+	{
+		return cgltf_result_invalid_options;
+	}
+
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_mem_alloc;
+	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_mem_free;
+
+	FILE* file = fopen(path, "rb");
+	if (!file)
+	{
+		return cgltf_result_file_not_found;
+	}
+
+	fseek(file, 0, SEEK_END);
+
+	long length = ftell(file);
+	if (length < 0)
+	{
+		fclose(file);
+		return cgltf_result_io_error;
+	}
+
+	fseek(file, 0, SEEK_SET);
+
+	char* file_data = (char*)memory_alloc(options->memory_user_data, length);
+	if (!file_data)
+	{
+		fclose(file);
+		return cgltf_result_out_of_memory;
+	}
+
+	cgltf_size file_size = (cgltf_size)length;
+	cgltf_size read_size = fread(file_data, 1, file_size, file);
+
+	fclose(file);
+
+	if (read_size != file_size)
+	{
+		memory_free(options->memory_user_data, file_data);
+		return cgltf_result_io_error;
+	}
+
+	cgltf_result result = cgltf_parse(options, file_data, file_size, out_data);
+
+	if (result != cgltf_result_success)
+	{
+		memory_free(options->memory_user_data, file_data);
+		return result;
+	}
+
+	out_data->file_data = file_data;
+
+	return cgltf_result_success;
+}
+
 void cgltf_free(cgltf_data* data)
 {
 	data->memory_free(data->memory_user_data, data->accessors);
@@ -517,6 +585,8 @@ void cgltf_free(cgltf_data* data)
 	}
 
 	data->memory_free(data->memory_user_data, data->scenes);
+
+  data->memory_free(data->memory_user_data, data->file_data);
 }
 
 #define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -128; }
