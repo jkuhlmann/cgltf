@@ -194,10 +194,21 @@ typedef struct cgltf_mesh {
 	cgltf_size primitives_count;
 } cgltf_mesh;
 
+typedef struct cgltf_node cgltf_node;
+
+typedef struct cgltf_skin {
+	char* name;
+	cgltf_node** joints;
+	cgltf_size joints_count;
+	cgltf_node* skeleton;
+	cgltf_accessor* inverse_bind_matrices;
+} cgltf_skin;
+
 typedef struct cgltf_node {
 	char* name;
-	struct cgltf_node** children;
+	cgltf_node** children;
 	cgltf_size children_count;
+	cgltf_skin* skin;
 	cgltf_mesh* mesh;
 	cgltf_bool has_translation;
 	cgltf_bool has_rotation;
@@ -243,6 +254,9 @@ typedef struct cgltf_data
 
 	cgltf_sampler* samplers;
 	cgltf_size samplers_count;
+
+	cgltf_skin* skins;
+	cgltf_size skins_count;
 
 	cgltf_node* nodes;
 	cgltf_size nodes_count;
@@ -501,6 +515,14 @@ void cgltf_free(cgltf_data* data)
 	data->memory_free(data->memory_user_data, data->images);
 	data->memory_free(data->memory_user_data, data->textures);
 	data->memory_free(data->memory_user_data, data->samplers);
+
+	for (cgltf_size i = 0; i < data->skins_count; ++i)
+	{
+		data->memory_free(data->memory_user_data, data->skins[i].name);
+		data->memory_free(data->memory_user_data, data->skins[i].joints);
+	}
+
+	data->memory_free(data->memory_user_data, data->skins);
 
 	for (cgltf_size i = 0; i < data->nodes_count; ++i)
 	{
@@ -1435,6 +1457,88 @@ static int cgltf_parse_json_buffers(cgltf_options* options, jsmntok_t const* tok
 	return i;
 }
 
+static int cgltf_parse_json_skin(cgltf_options* options, jsmntok_t const* tokens, int i,
+				   const uint8_t* json_chunk, cgltf_size skin_index,
+				   cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	out_data->skins[skin_index].name = NULL;
+	out_data->skins[skin_index].joints_count = 0;
+	out_data->skins[skin_index].joints = NULL;
+	out_data->skins[skin_index].skeleton = (cgltf_node*)-1;
+	out_data->skins[skin_index].inverse_bind_matrices = (cgltf_accessor*)-1;
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
+		{
+			++i;
+			int strsize = tokens[i].end - tokens[i].start;
+			out_data->skins[skin_index].name = (char*)options->memory_alloc(options->memory_user_data, strsize + 1);
+			strncpy(out_data->skins[skin_index].name,
+				(const char*)json_chunk + tokens[i].start,
+				strsize);
+			out_data->skins[skin_index].name[strsize] = 0;
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "joints") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+			out_data->skins[skin_index].joints_count = tokens[i].size;
+			out_data->skins[skin_index].joints = (cgltf_node**)options->memory_alloc(options->memory_user_data, sizeof(cgltf_node**) * tokens[i].size);
+			++i;
+
+			for (cgltf_size k = 0; k < out_data->skins[skin_index].joints_count; ++k)
+			{
+				out_data->skins[skin_index].joints[k] = (cgltf_node*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+				++i;
+			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "skeleton") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
+			out_data->skins[skin_index].skeleton = (cgltf_node*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "inverseBindMatrices") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
+			out_data->skins[skin_index].inverse_bind_matrices = (cgltf_accessor*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_skins(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	out_data->skins_count = tokens[i].size;
+	out_data->skins = (cgltf_skin*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_skin) * out_data->skins_count);
+	++i;
+	for (cgltf_size j = 0 ; j < out_data->skins_count; ++j)
+	{
+		i = cgltf_parse_json_skin(options, tokens, i, json_chunk, j, out_data);
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+	return i;
+}
+
 static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens, int i,
 				   const uint8_t* json_chunk, cgltf_size node_index,
 				   cgltf_data* out_data)
@@ -1445,6 +1549,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 	out_data->nodes[node_index].children_count = 0;
 	out_data->nodes[node_index].children = NULL;
 	out_data->nodes[node_index].mesh = (cgltf_mesh*)-1;
+	out_data->nodes[node_index].skin = (cgltf_skin*)-1;
 	out_data->nodes[node_index].has_translation = 0;
 	out_data->nodes[node_index].has_rotation = 0;
 	out_data->nodes[node_index].has_scale = 0;
@@ -1500,6 +1605,13 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
 			out_data->nodes[node_index].mesh = (cgltf_mesh*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "skin") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
+			out_data->nodes[node_index].skin = (cgltf_skin*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "translation") == 0)
@@ -1769,6 +1881,11 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				i = cgltf_parse_json_samplers(options, tokens, i + 1, json_chunk, out_data);
 			}
 			else if (name_length == 5
+				&& strncmp((const char*)json_chunk + tok->start, "skins", 5) == 0)
+			{
+				i = cgltf_parse_json_skins(options, tokens, i + 1, json_chunk, out_data);
+			}
+			else if (name_length == 5
 				&& strncmp((const char*)json_chunk + tok->start, "nodes", 5) == 0)
 			{
 				i = cgltf_parse_json_nodes(options, tokens, i + 1, json_chunk, out_data);
@@ -1939,6 +2056,35 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 			= &out_data->buffers[(cgltf_size)out_data->buffer_views[i].buffer];
 	}
 
+	for (cgltf_size i = 0; i < out_data->skins_count; ++i)
+	{
+		for (cgltf_size j = 0; j < out_data->skins[i].joints_count; ++j)
+		{
+			out_data->skins[i].joints[j]
+				= &out_data->nodes[(cgltf_size)out_data->skins[i].joints[j]];
+		}
+
+		if (out_data->skins[i].skeleton == (void*)-1)
+		{
+			out_data->skins[i].skeleton = NULL;
+		}
+		else
+		{
+			out_data->skins[i].skeleton =
+				&out_data->nodes[(cgltf_size)out_data->skins[i].skeleton];
+		}
+
+		if (out_data->skins[i].inverse_bind_matrices == (void*)-1)
+		{
+			out_data->skins[i].inverse_bind_matrices = NULL;
+		}
+		else
+		{
+			out_data->skins[i].inverse_bind_matrices =
+				&out_data->accessors[(cgltf_size)out_data->skins[i].inverse_bind_matrices];
+		}
+	}
+
 	for (cgltf_size i = 0; i < out_data->nodes_count; ++i)
 	{
 		for (cgltf_size j = 0; j < out_data->nodes[i].children_count; ++j)
@@ -1955,6 +2101,16 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		{
 			out_data->nodes[i].mesh =
 				&out_data->meshes[(cgltf_size)out_data->nodes[i].mesh];
+		}
+
+		if (out_data->nodes[i].skin == (void*)-1)
+		{
+			out_data->nodes[i].skin = NULL;
+		}
+		else
+		{
+			out_data->nodes[i].skin =
+				&out_data->skins[(cgltf_size)out_data->nodes[i].skin];
 		}
 	}
 
