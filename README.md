@@ -47,9 +47,9 @@ cgltf supports this:
 - scenes and nodes
 - skins
 - animations
+- cameras
 
 cgltf does **not** yet support this:
-- cameras
 - morph targets
 - any extensions (like Draco, for example)
 
