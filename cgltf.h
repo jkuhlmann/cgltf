@@ -106,7 +106,6 @@ typedef enum cgltf_animation_path_type {
 	cgltf_animation_path_type_translation,
 	cgltf_animation_path_type_rotation,
 	cgltf_animation_path_type_scale,
-	cgltf_animation_path_type_weights,
 } cgltf_animation_path_type;
 
 typedef enum cgltf_interpolation_type {
@@ -1939,10 +1938,6 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 					else if (cgltf_json_strcmp(tokens+i, json_chunk, "scale") == 0)
 					{
 						out_channel->target_path = cgltf_animation_path_type_scale;
-					}
-					else if (cgltf_json_strcmp(tokens+i, json_chunk, "weights") == 0)
-					{
-						out_channel->target_path = cgltf_animation_path_type_weights;
 					}
 					++i;
 				}
