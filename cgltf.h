@@ -199,15 +199,14 @@ typedef struct cgltf_node {
 	struct cgltf_node** children;
 	cgltf_size children_count;
 	cgltf_mesh* mesh;
+	cgltf_bool has_translation;
+	cgltf_bool has_rotation;
+	cgltf_bool has_scale;
 	cgltf_bool has_matrix;
-	union {
-		struct {
-			float translation[3];
-			float rotation[4];
-			float scale[3];
-		};
-		float matrix[16];
-	};
+	cgltf_float translation[3];
+	cgltf_float rotation[4];
+	cgltf_float scale[3];
+	cgltf_float matrix[16];
 } cgltf_node;
 
 typedef struct cgltf_scene {
@@ -1446,6 +1445,9 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 	out_data->nodes[node_index].children_count = 0;
 	out_data->nodes[node_index].children = NULL;
 	out_data->nodes[node_index].mesh = (cgltf_mesh*)-1;
+	out_data->nodes[node_index].has_translation = 0;
+	out_data->nodes[node_index].has_rotation = 0;
+	out_data->nodes[node_index].has_scale = 0;
 	out_data->nodes[node_index].has_matrix = 0;
 	out_data->nodes[node_index].translation[0] = 0;
 	out_data->nodes[node_index].translation[1] = 0;
@@ -1457,6 +1459,11 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 	out_data->nodes[node_index].scale[0] = 1;
 	out_data->nodes[node_index].scale[1] = 1;
 	out_data->nodes[node_index].scale[2] = 1;
+	memset(out_data->nodes[node_index].matrix, 0, sizeof(out_data->nodes[node_index].matrix));
+	out_data->nodes[node_index].matrix[0] = 1;
+	out_data->nodes[node_index].matrix[5] = 1;
+	out_data->nodes[node_index].matrix[10] = 1;
+	out_data->nodes[node_index].matrix[15] = 1;
 
 	int size = tokens[i].size;
 	++i;
@@ -1505,6 +1512,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 				out_data->nodes[node_index].translation[k] = cgltf_json_to_float(tokens + i, json_chunk);
 				++i;
 			}
+			out_data->nodes[node_index].has_translation = 1;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "rotation") == 0)
 		{
@@ -1516,6 +1524,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 				out_data->nodes[node_index].rotation[k] = cgltf_json_to_float(tokens + i, json_chunk);
 				++i;
 			}
+			out_data->nodes[node_index].has_rotation = 1;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "scale") == 0)
 		{
@@ -1527,6 +1536,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 				out_data->nodes[node_index].scale[k] = cgltf_json_to_float(tokens + i, json_chunk);
 				++i;
 			}
+			out_data->nodes[node_index].has_scale = 1;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "matrix") == 0)
 		{
