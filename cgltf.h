@@ -198,6 +198,7 @@ typedef struct cgltf_node {
 	char* name;
 	struct cgltf_node** children;
 	cgltf_size children_count;
+	cgltf_mesh* mesh;
 	cgltf_bool has_matrix;
 	union {
 		struct {
@@ -1444,6 +1445,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 	out_data->nodes[node_index].name = NULL;
 	out_data->nodes[node_index].children_count = 0;
 	out_data->nodes[node_index].children = NULL;
+	out_data->nodes[node_index].mesh = (cgltf_mesh*)-1;
 	out_data->nodes[node_index].has_matrix = 0;
 	out_data->nodes[node_index].translation[0] = 0;
 	out_data->nodes[node_index].translation[1] = 0;
@@ -1485,6 +1487,13 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 				out_data->nodes[node_index].children[k] = (cgltf_node*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
 				++i;
 			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "mesh") == 0)
+		{
+			++i;
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
+			out_data->nodes[node_index].mesh = (cgltf_mesh*)(size_t)cgltf_json_to_int(tokens + i, json_chunk);
+			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "translation") == 0)
 		{
@@ -1933,6 +1942,16 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				out_data->nodes[i].children[j]
 					= &out_data->nodes[(cgltf_size)out_data->nodes[i].children[j]];
 			}
+		}
+
+		if (out_data->nodes[i].mesh == (void*)-1)
+		{
+			out_data->nodes[i].mesh = NULL;
+		}
+		else
+		{
+			out_data->nodes[i].mesh =
+				&out_data->meshes[(cgltf_size)out_data->nodes[i].mesh];
 		}
 	}
 
