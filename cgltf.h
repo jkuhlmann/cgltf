@@ -52,6 +52,8 @@ typedef enum cgltf_attribute_type
 	cgltf_attribute_type_tangent,
 	cgltf_attribute_type_texcoord_0,
 	cgltf_attribute_type_texcoord_1,
+	cgltf_attribute_type_texcoord_2,
+	cgltf_attribute_type_texcoord_3,
 	cgltf_attribute_type_color_0,
 	cgltf_attribute_type_joints_0,
 	cgltf_attribute_type_weights_0,
@@ -640,6 +642,14 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "TEXCOORD_1") == 0)
 				{
 					out_prim->attributes[iattr].name = cgltf_attribute_type_texcoord_1;
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "TEXCOORD_2") == 0)
+				{
+					out_prim->attributes[iattr].name = cgltf_attribute_type_texcoord_2;
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "TEXCOORD_3") == 0)
+				{
+					out_prim->attributes[iattr].name = cgltf_attribute_type_texcoord_3;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "COLOR_0") == 0)
 				{
