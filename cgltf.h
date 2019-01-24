@@ -192,10 +192,23 @@ typedef struct cgltf_pbr_metallic_roughness
 	cgltf_float roughness_factor;
 } cgltf_pbr_metallic_roughness;
 
+typedef struct cgltf_pbr_specular_glossiness
+{
+	cgltf_texture_view diffuse_texture;
+	cgltf_texture_view specular_glossiness_texture;
+
+	cgltf_float diffuse_factor[4];
+	cgltf_float specular_factor[3];
+	cgltf_float glossiness_factor;
+} cgltf_pbr_specular_glossiness;
+
 typedef struct cgltf_material
 {
 	char* name;
+	cgltf_bool has_pbr_metallic_roughness;
+	cgltf_bool has_pbr_specular_glossiness;
 	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
+	cgltf_pbr_specular_glossiness pbr_specular_glossiness;
 	cgltf_texture_view normal_texture;
 	cgltf_texture_view occlusion_texture;
 	cgltf_texture_view emissive_texture;
@@ -825,6 +838,14 @@ static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 	return i;
 }
 
+static void cgltf_fill_float_array(float* out_array, int size, float value)
+{
+	for (int j = 0; j < size; ++j)
+	{
+		out_array[j] = value;
+	}
+}
+
 static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, float* out_array, int size)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
@@ -1190,6 +1211,61 @@ static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int 
 	return i;
 }
 
+static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_specular_glossiness* out_pbr)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "diffuseFactor") == 0)
+		{
+			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_pbr->diffuse_factor, 4);
+			if (i < 0)
+			{
+				return i;
+			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "specularFactor") == 0)
+		{
+			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_pbr->specular_factor, 3);
+			if (i < 0)
+			{
+				return i;
+			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "glossinessFactor") == 0)
+		{
+			++i;
+			out_pbr->glossiness_factor = cgltf_json_to_float(tokens + i, json_chunk);
+			++i;
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "diffuseTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->diffuse_texture);
+			if (i < 0)
+			{
+				return i;
+			}
+		}
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "specularGlossinessTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->specular_glossiness_texture);
+			if (i < 0)
+			{
+				return i;
+			}
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_image* out_image)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -1321,12 +1397,16 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 
 	out_material->pbr_metallic_roughness.base_color_texture.scale = 1.0f;
 	out_material->pbr_metallic_roughness.metallic_roughness_texture.scale = 1.0f;
-	out_material->pbr_metallic_roughness.base_color_factor[0] = 1.0f;
-	out_material->pbr_metallic_roughness.base_color_factor[1] = 1.0f;
-	out_material->pbr_metallic_roughness.base_color_factor[2] = 1.0f;
-	out_material->pbr_metallic_roughness.base_color_factor[3] = 1.0f;
+	cgltf_fill_float_array(out_material->pbr_metallic_roughness.base_color_factor, 4, 1.0f);
 	out_material->pbr_metallic_roughness.metallic_factor = 1.0f;
 	out_material->pbr_metallic_roughness.roughness_factor = 1.0f;
+
+	out_material->pbr_specular_glossiness.diffuse_texture.scale = 1.0f;
+	out_material->pbr_specular_glossiness.specular_glossiness_texture.scale = 1.0f;
+	cgltf_fill_float_array(out_material->pbr_specular_glossiness.diffuse_factor, 4, 1.0f);
+	cgltf_fill_float_array(out_material->pbr_specular_glossiness.specular_factor, 3, 1.0f);
+	out_material->pbr_specular_glossiness.glossiness_factor = 1.0f;
+
 	out_material->emissive_texture.scale = 1.0f;
 	out_material->normal_texture.scale = 1.0f;
 	out_material->occlusion_texture.scale = 1.0f;
@@ -1345,6 +1425,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "pbrMetallicRoughness") == 0)
 		{
+			out_material->has_pbr_metallic_roughness = 1;
 			i = cgltf_parse_json_pbr_metallic_roughness(tokens, i + 1, json_chunk, &out_material->pbr_metallic_roughness);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "emissiveFactor") == 0)
@@ -1395,6 +1476,28 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 			out_material->double_sided =
 				cgltf_json_to_bool(tokens + i, json_chunk);
 			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_pbrSpecularGlossiness") == 0)
+				{
+					out_material->has_pbr_specular_glossiness = 1;
+					i = cgltf_parse_json_pbr_specular_glossiness(tokens, i + 1, json_chunk, &out_material->pbr_specular_glossiness);
+				}
+				else
+				{
+					i = cgltf_skip_json(tokens, i+1);
+				}
+			}
 		}
 		else
 		{
@@ -2421,6 +2524,9 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 
 		CGLTF_PTRFIXUP(data->materials[i].pbr_metallic_roughness.base_color_texture.texture, data->textures, data->textures_count);
 		CGLTF_PTRFIXUP(data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.texture, data->textures, data->textures_count);
+
+		CGLTF_PTRFIXUP(data->materials[i].pbr_specular_glossiness.diffuse_texture.texture, data->textures, data->textures_count);
+		CGLTF_PTRFIXUP(data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.texture, data->textures, data->textures_count);
 	}
 
 	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)

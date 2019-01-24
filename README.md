@@ -39,8 +39,8 @@ if (result == cgltf_result_success)
 Note that cgltf does not load the contents of extra files such as buffers or images into memory; you'll need to read these files yourself using URIs from `data.buffers[]` or `data.images[]` respectively.
 
 ## Support
-cgltf supports this:
-- glTF 2.0
+
+cgltf supports most core glTF 2.0 features:
 - glb (binary files) and gltf (JSON files)
 - meshes (including accessors, buffer views, buffers)
 - materials (including textures, samplers, images)
@@ -49,9 +49,12 @@ cgltf supports this:
 - animations
 - cameras
 
+cgltf also supports some glTF extensions:
+- KHR_materials_pbrSpecularGlossiness
+
 cgltf does **not** yet support this:
 - morph targets
-- any extensions (like Draco, for example)
+- any unlisted extensions (like Draco, for example)
 
 ## Building
 The easiest approach is to integrate the `cgltf.h` header file into your project. If you are unfamiliar with single-file C libraries (also known as stb-style libraries), this is how it goes:
