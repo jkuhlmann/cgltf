@@ -85,13 +85,13 @@ typedef enum cgltf_type
 
 typedef enum cgltf_primitive_type
 {
-	cgltf_type_points,
-	cgltf_type_lines,
-	cgltf_type_line_loop,
-	cgltf_type_line_strip,
-	cgltf_type_triangles,
-	cgltf_type_triangle_strip,
-	cgltf_type_triangle_fan,
+	cgltf_primitive_type_points,
+	cgltf_primitive_type_lines,
+	cgltf_primitive_type_line_loop,
+	cgltf_primitive_type_line_strip,
+	cgltf_primitive_type_triangles,
+	cgltf_primitive_type_triangle_strip,
+	cgltf_primitive_type_triangle_fan,
 } cgltf_primitive_type;
 
 typedef enum cgltf_alpha_mode
@@ -152,15 +152,6 @@ typedef struct cgltf_attribute
 	cgltf_accessor* data;
 } cgltf_attribute;
 
-
-typedef struct cgltf_rgba 
-{
-	cgltf_float r;
-	cgltf_float g;
-	cgltf_float b;
-	cgltf_float a;
-} cgltf_rgba;
-
 typedef struct cgltf_image 
 {
 	char* name;
@@ -191,24 +182,24 @@ typedef struct cgltf_texture_view
 	cgltf_float scale; /* equivalent to strength for occlusion_texture */
 } cgltf_texture_view;
 
-typedef struct cgltf_pbr
+typedef struct cgltf_pbr_metallic_roughness
 {
 	cgltf_texture_view base_color_texture;
 	cgltf_texture_view metallic_roughness_texture;
 
-	cgltf_rgba base_color;
+	cgltf_float base_color_factor[4];
 	cgltf_float metallic_factor;
 	cgltf_float roughness_factor;
-} cgltf_pbr;
+} cgltf_pbr_metallic_roughness;
 
 typedef struct cgltf_material
 {
 	char* name;
-	cgltf_pbr pbr;
+	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
 	cgltf_texture_view normal_texture;
-	cgltf_texture_view emissive_texture;
 	cgltf_texture_view occlusion_texture;
-	cgltf_rgba emissive_color;
+	cgltf_texture_view emissive_texture;
+	cgltf_float emissive_factor[3];
 	cgltf_alpha_mode alpha_mode;
 	cgltf_float alpha_cutoff;
 	cgltf_bool double_sided;
@@ -1085,29 +1076,6 @@ static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i, const uint8
 	return i;
 }
 
-static int cgltf_parse_json_rgba(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_rgba* out)
-{
-	int components = tokens[i].size;
-	if (components >= 2) {
-		out->r = cgltf_json_to_float(tokens + ++i, json_chunk);
-		out->g = cgltf_json_to_float(tokens + ++i, json_chunk);
-
-		if (components > 2)
-			out->b = cgltf_json_to_float(tokens + ++i, json_chunk);
-
-		if (components > 3)
-			out->a = cgltf_json_to_float(tokens + ++i, json_chunk);
-	}
-	else {
-		out->r = cgltf_json_to_float(tokens + ++i, json_chunk);
-		out->g = out->r;
-		out->b = out->r;
-		out->a = out->r;
-	}
-
-	return ++i;
-}
-
 static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_view* out_texture_view)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -1149,7 +1117,7 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 	return i;
 }
 
-static int cgltf_parse_json_pbr(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr* out_pbr)
+static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_metallic_roughness* out_pbr)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 	int size = tokens[i].size;
@@ -1173,8 +1141,11 @@ static int cgltf_parse_json_pbr(jsmntok_t const* tokens, int i, const uint8_t* j
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "baseColorFactor") == 0)
 		{
-			i = cgltf_parse_json_rgba(tokens, i + 1, json_chunk,
-					&out_pbr->base_color);
+			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_pbr->base_color_factor, 4);
+			if (i < 0)
+			{
+				return i;
+			}
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "baseColorTexture") == 0)
 		{
@@ -1336,20 +1307,20 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 	memset(out_material, 0, sizeof(cgltf_material));
-	out_material->emissive_texture.texture = (cgltf_texture*)-1;
-	out_material->emissive_texture.scale = 1.0f;
-
 	out_material->normal_texture.texture = (cgltf_texture*)-1;
 	out_material->normal_texture.scale = 1.0f;
 
 	out_material->occlusion_texture.texture = (cgltf_texture*)-1;
 	out_material->occlusion_texture.scale = 1.0f;
 
-	out_material->pbr.base_color_texture.texture = (cgltf_texture*)-1;
-	out_material->pbr.base_color_texture.scale = 1.0f;
+	out_material->emissive_texture.texture = (cgltf_texture*)-1;
+	out_material->emissive_texture.scale = 1.0f;
 
-	out_material->pbr.metallic_roughness_texture.texture = (cgltf_texture*)-1;
-	out_material->pbr.metallic_roughness_texture.scale = 1.0f;
+	out_material->pbr_metallic_roughness.base_color_texture.texture = (cgltf_texture*)-1;
+	out_material->pbr_metallic_roughness.base_color_texture.scale = 1.0f;
+
+	out_material->pbr_metallic_roughness.metallic_roughness_texture.texture = (cgltf_texture*)-1;
+	out_material->pbr_metallic_roughness.metallic_roughness_texture.scale = 1.0f;
 
 	out_material->alpha_cutoff = 0.5f;
 
@@ -1366,27 +1337,26 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "pbrMetallicRoughness") == 0)
 		{
-			i = cgltf_parse_json_pbr(tokens, i + 1, json_chunk, &out_material->pbr);
+			i = cgltf_parse_json_pbr_metallic_roughness(tokens, i + 1, json_chunk, &out_material->pbr_metallic_roughness);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "emissiveFactor") == 0)
 		{
-			i = cgltf_parse_json_rgba(tokens, i + 1, json_chunk, 
-				&out_material->emissive_color);
+			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_material->emissive_factor, 3);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "normalTexture") == 0)
 		{
 			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
 				&out_material->normal_texture);
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "emissiveTexture") == 0)
-		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
-				&out_material->emissive_texture);
-		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "occlusionTexture") == 0)
 		{
 			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
 				&out_material->occlusion_texture);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "emissiveTexture") == 0)
+		{
+			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+				&out_material->emissive_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "alphaMode") == 0)
 		{
@@ -2513,16 +2483,6 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				&out_data->textures[(cgltf_size)out_data->materials[i].emissive_texture.texture];
 		}
 
-		if (out_data->materials[i].normal_texture.texture == (void*)-1)
-		{
-			out_data->materials[i].normal_texture.texture = NULL;
-		}
-		else
-		{
-			out_data->materials[i].normal_texture.texture =
-				&out_data->textures[(cgltf_size)out_data->materials[i].normal_texture.texture];
-		}
-
 		if (out_data->materials[i].occlusion_texture.texture == (void*)-1)
 		{
 			out_data->materials[i].occlusion_texture.texture = NULL;
@@ -2533,24 +2493,34 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 				&out_data->textures[(cgltf_size)out_data->materials[i].occlusion_texture.texture];
 		}
 
-		if (out_data->materials[i].pbr.base_color_texture.texture == (void*)-1)
+		if (out_data->materials[i].normal_texture.texture == (void*)-1)
 		{
-			out_data->materials[i].pbr.base_color_texture.texture = NULL;
+			out_data->materials[i].normal_texture.texture = NULL;
 		}
 		else
 		{
-			out_data->materials[i].pbr.base_color_texture.texture =
-				&out_data->textures[(cgltf_size)out_data->materials[i].pbr.base_color_texture.texture];
+			out_data->materials[i].normal_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].normal_texture.texture];
 		}
 
-		if (out_data->materials[i].pbr.metallic_roughness_texture.texture == (void*)-1)
+		if (out_data->materials[i].pbr_metallic_roughness.base_color_texture.texture == (void*)-1)
 		{
-			out_data->materials[i].pbr.metallic_roughness_texture.texture = NULL;
+			out_data->materials[i].pbr_metallic_roughness.base_color_texture.texture = NULL;
 		}
 		else
 		{
-			out_data->materials[i].pbr.metallic_roughness_texture.texture =
-				&out_data->textures[(cgltf_size)out_data->materials[i].pbr.metallic_roughness_texture.texture];
+			out_data->materials[i].pbr_metallic_roughness.base_color_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].pbr_metallic_roughness.base_color_texture.texture];
+		}
+
+		if (out_data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.texture == (void*)-1)
+		{
+			out_data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.texture = NULL;
+		}
+		else
+		{
+			out_data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.texture =
+				&out_data->textures[(cgltf_size)out_data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.texture];
 		}
 	}
 
