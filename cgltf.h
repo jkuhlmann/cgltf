@@ -418,8 +418,8 @@ typedef struct {
 	unsigned int toknext; /* next token to allocate */
 	int toksuper; /* superior token node, e.g parent object or array */
 } jsmn_parser;
-void jsmn_init(jsmn_parser *parser);
-int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t *tokens, size_t num_tokens);
+static void jsmn_init(jsmn_parser *parser);
+static int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t *tokens, size_t num_tokens);
 /*
  * -- jsmn.h end --
  */
@@ -506,6 +506,11 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 	}
 
 	const uint8_t* json_chunk = ptr + GltfHeaderSize;
+
+	if (GltfHeaderSize + GltfChunkHeaderSize > size)
+	{
+		return cgltf_result_data_too_short;
+	}
 
 	// JSON chunk: length
 	uint32_t json_length;
@@ -2312,7 +2317,14 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	if (options->json_token_count == 0)
 	{
-		options->json_token_count = jsmn_parse(&parser, (const char*)json_chunk, size, NULL, 0);
+		int token_count = jsmn_parse(&parser, (const char*)json_chunk, size, NULL, 0);
+
+		if (token_count <= 0)
+		{
+			return cgltf_result_invalid_json;
+		}
+
+		options->json_token_count = token_count;
 	}
 
 	jsmntok_t* tokens = (jsmntok_t*)options->memory_alloc(options->memory_user_data, sizeof(jsmntok_t) * options->json_token_count);
@@ -2321,7 +2333,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	int token_count = jsmn_parse(&parser, (const char*)json_chunk, size, tokens, options->json_token_count);
 
-	if (token_count < 0 || tokens[0].type != JSMN_OBJECT)
+	if (token_count <= 0 || tokens[0].type != JSMN_OBJECT)
 	{
 		options->memory_free(options->memory_user_data, tokens);
 		return cgltf_result_invalid_json;
@@ -2829,7 +2841,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 /**
  * Parse JSON string and fill tokens.
  */
-int jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
+static int jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
 	       jsmntok_t *tokens, size_t num_tokens) {
 	int r;
 	int i;
@@ -2987,7 +2999,7 @@ int jsmn_parse(jsmn_parser *parser, const char *js, size_t len,
  * Creates a new parser based over a given  buffer with an array of tokens
  * available.
  */
-void jsmn_init(jsmn_parser *parser) {
+static void jsmn_init(jsmn_parser *parser) {
 	parser->pos = 0;
 	parser->toknext = 0;
 	parser->toksuper = -1;
