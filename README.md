@@ -10,12 +10,12 @@ Loading from file:
 #include "cgltf.h"
 
 cgltf_options options = {0};
-cgltf_data data;
+cgltf_data* data = NULL;
 cgltf_result result = cgltf_parse_file(&options, "scene.gltf", &data);
 if (result == cgltf_result_success)
 {
 	/* TODO make awesome stuff */
-	cgltf_free(&data);
+	cgltf_free(data);
 }
 ```
 
@@ -27,12 +27,12 @@ void* buf; /* Pointer to glb or gltf file data */
 size_t size; /* Size of the file data */
 
 cgltf_options options = {0};
-cgltf_data data;
+cgltf_data* data = NULL;
 cgltf_result result = cgltf_parse(&options, buf, size, &data);
 if (result == cgltf_result_success)
 {
 	/* TODO make awesome stuff */
-	cgltf_free(&data);
+	cgltf_free(data);
 }
 ```
 
