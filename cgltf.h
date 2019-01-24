@@ -1947,8 +1947,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "translation") == 0)
 		{
-			++i;
-			i = cgltf_parse_float_array(tokens, i, json_chunk, out_node->translation, 3);
+			i = cgltf_parse_float_array(tokens, i + 1, json_chunk, out_node->translation, 3);
 			if (i < 0)
 			{
 				return i;
@@ -1957,8 +1956,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "rotation") == 0)
 		{
-			++i;
-			i = cgltf_parse_float_array(tokens, i, json_chunk, out_node->rotation, 4);
+			i = cgltf_parse_float_array(tokens, i + 1, json_chunk, out_node->rotation, 4);
 			if (i < 0)
 			{
 				return i;
@@ -1967,8 +1965,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "scale") == 0)
 		{
-			++i;
-			i = cgltf_parse_float_array(tokens, i, json_chunk, out_node->scale, 3);
+			i = cgltf_parse_float_array(tokens, i + 1, json_chunk, out_node->scale, 3);
 			if (i < 0)
 			{
 				return i;
@@ -1977,8 +1974,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "matrix") == 0)
 		{
-			++i;
-			i = cgltf_parse_float_array(tokens, i, json_chunk, out_node->matrix, 16);
+			i = cgltf_parse_float_array(tokens, i + 1, json_chunk, out_node->matrix, 16);
 			if (i < 0)
 			{
 				return i;
