@@ -29,20 +29,20 @@ int main(int argc, char** argv)
 	fclose(f);
 
 	cgltf_options options = {0};
-	cgltf_data data;
+	cgltf_data* data = NULL;
 	cgltf_result result = cgltf_parse(&options, buf, size, &data);
 
 	printf("Result: %d\n", result);
 	if (result == cgltf_result_success)
 	{
-		printf("Type: %u\n", data.file_type);
-		printf("Version: %d\n", data.version);
-		printf("Meshes: %lu\n", data.meshes_count);
+		printf("Type: %u\n", data->file_type);
+		printf("Version: %d\n", data->version);
+		printf("Meshes: %lu\n", data->meshes_count);
 	}
 
 	free(buf);
 
-	cgltf_free(&data);
+	cgltf_free(data);
 
 	return result;
 }
