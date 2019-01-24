@@ -759,9 +759,9 @@ static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, co
 
 static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
-	char tmp[128];
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
-	int size = tok->end - tok->start;
+	char tmp[128];
+	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : sizeof(tmp) - 1;
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return atoi(tmp);
@@ -769,9 +769,9 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 
 static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
-	char tmp[128];
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
-	int size = tok->end - tok->start;
+	char tmp[128];
+	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : sizeof(tmp) - 1;
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return (cgltf_float)atof(tmp);
