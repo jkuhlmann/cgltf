@@ -36,7 +36,6 @@ int main(int argc, char** argv)
 	if (result == cgltf_result_success)
 	{
 		printf("Type: %u\n", data->file_type);
-		printf("Version: %d\n", data->version);
 		printf("Meshes: %lu\n", data->meshes_count);
 	}
 
