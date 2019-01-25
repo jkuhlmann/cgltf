@@ -155,6 +155,10 @@ typedef struct cgltf_accessor
 	cgltf_size count;
 	cgltf_size stride;
 	cgltf_buffer_view* buffer_view;
+	cgltf_bool has_min;
+	cgltf_float min[16];
+	cgltf_bool has_max;
+	cgltf_float max[16];
 	cgltf_bool is_sparse;
 	cgltf_accessor_sparse sparse;
 } cgltf_accessor;
@@ -1281,6 +1285,30 @@ static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i, const uint8
 				out_accessor->type = cgltf_type_mat4;
 			}
 			++i;
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "min") == 0)
+		{
+			++i;
+			out_accessor->has_min = 1;
+			// note: we can't parse the precise number of elements since type may not have been computed yet
+			int min_size = tokens[i].size > 16 ? 16 : tokens[i].size;
+			i = cgltf_parse_json_float_array(tokens, i, json_chunk, out_accessor->min, min_size);
+			if (i < 0)
+			{
+				return i;
+			}
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "max") == 0)
+		{
+			++i;
+			out_accessor->has_max = 1;
+			// note: we can't parse the precise number of elements since type may not have been computed yet
+			int max_size = tokens[i].size > 16 ? 16 : tokens[i].size;
+			i = cgltf_parse_json_float_array(tokens, i, json_chunk, out_accessor->max, max_size);
+			if (i < 0)
+			{
+				return i;
+			}
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "sparse") == 0)
 		{
