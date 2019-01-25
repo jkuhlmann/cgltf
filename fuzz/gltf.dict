@@ -52,7 +52,7 @@
 "/**/"
 
 #
-# AFL dictionary for GLTF
+# AFL dictionary for GLTF core
 # -----------------------
 
 "5120"
@@ -213,3 +213,13 @@
 "\"zfar\""
 "\"znear\""
 "\"znear\""
+
+#
+# AFL dictionary for GLTF extensions
+# -----------------------
+"\"KHR_materials_pbrSpecularGlossiness\""
+"\"diffuseFactor\""
+"\"diffuseTexture\""
+"\"specularFactor\""
+"\"glossinessFactor\""
+"\"specularGlossinessTexture\""
