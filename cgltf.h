@@ -3240,6 +3240,11 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	jsmntok_t* tokens = (jsmntok_t*)options->memory_alloc(options->memory_user_data, sizeof(jsmntok_t) * options->json_token_count);
 
+	if (!tokens)
+	{
+		return cgltf_result_out_of_memory;
+	}
+
 	jsmn_init(&parser);
 
 	int token_count = jsmn_parse(&parser, (const char*)json_chunk, size, tokens, options->json_token_count);
@@ -3251,6 +3256,13 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	}
 
 	cgltf_data* data = (cgltf_data*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_data));
+
+	if (!data)
+	{
+		options->memory_free(options->memory_user_data, tokens);
+		return cgltf_result_out_of_memory;
+	}
+
 	memset(data, 0, sizeof(cgltf_data));
 	data->memory_free = options->memory_free;
 	data->memory_user_data = options->memory_user_data;
