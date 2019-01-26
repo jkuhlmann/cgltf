@@ -233,6 +233,7 @@ typedef struct cgltf_material
 	cgltf_alpha_mode alpha_mode;
 	cgltf_float alpha_cutoff;
 	cgltf_bool double_sided;
+	cgltf_bool unlit;
 } cgltf_material;
 
 typedef struct cgltf_morph_target {
@@ -1768,6 +1769,11 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				{
 					out_material->has_pbr_specular_glossiness = 1;
 					i = cgltf_parse_json_pbr_specular_glossiness(tokens, i + 1, json_chunk, &out_material->pbr_specular_glossiness);
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_unlit") == 0)
+				{
+					out_material->unlit = 1;
+					i = cgltf_skip_json(tokens, i+1);
 				}
 				else
 				{
