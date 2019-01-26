@@ -51,7 +51,10 @@ cgltf supports core glTF 2.0:
 - morph targets
 
 cgltf also supports some glTF extensions:
+- KHR_lights_punctual
 - KHR_materials_pbrSpecularGlossiness
+- KHR_materials_unlit
+- KHR_texture_transform
 
 cgltf does **not** yet support unlisted extensions or `extra` data.
 
