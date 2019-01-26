@@ -3123,7 +3123,7 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scene") == 0)
 		{
 			++i;
-			out_data->scene = (cgltf_scene*)(cgltf_size)cgltf_json_to_int(tokens + i, json_chunk);
+			out_data->scene = CGLTF_PTRINDEX(cgltf_scene, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "animations") == 0)
@@ -3257,6 +3257,7 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
 			CGLTF_PTRFIXUP(data->meshes[i].primitives[j].indices, data->accessors, data->accessors_count);
+			CGLTF_PTRFIXUP(data->meshes[i].primitives[j].material, data->materials, data->materials_count);
 
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 			{
