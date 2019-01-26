@@ -848,11 +848,14 @@ void cgltf_free(cgltf_data* data)
 	data->memory_free(data->memory_user_data, data);
 }
 
-#define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return -1; }
-#define CGLTF_CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return -1; } /* checking size for 0 verifies that a value follows the key */
+#define CGLTF_ERROR_JSON -1
+#define CGLTF_ERROR_NOMEM -2
+
+#define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return CGLTF_ERROR_JSON; }
+#define CGLTF_CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return CGLTF_ERROR_JSON; } /* checking size for 0 verifies that a value follows the key */
 
 #define CGLTF_PTRINDEX(type, idx) (type*)(cgltf_size)(idx + 1)
-#define CGLTF_PTRFIXUP(var, data, size) if (var) { if ((cgltf_size)var > size) { return -1; } var = &data[(cgltf_size)var-1]; }
+#define CGLTF_PTRFIXUP(var, data, size) if (var) { if ((cgltf_size)var > size) { return CGLTF_ERROR_JSON; } var = &data[(cgltf_size)var-1]; }
 
 static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, const char* str)
 {
@@ -886,19 +889,6 @@ static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_c
 {
 	int size = tok->end - tok->start;
 	return size == 4 && memcmp(json_chunk + tok->start, "true", 4) == 0;
-}
-
-static char* cgltf_json_to_string_alloc(cgltf_options* options, jsmntok_t const* tok, const uint8_t* json_chunk)
-{
-	int size = tok->end - tok->start;
-	char* result = (char*)options->memory_alloc(options->memory_user_data, size + 1);
-	if (!result)
-	{
-		return NULL;
-	}
-	strncpy(result, (const char*)json_chunk + tok->start, size);
-	result[size] = 0;
-	return result;
 }
 
 static int cgltf_skip_json(jsmntok_t const* tokens, int i)
@@ -952,7 +942,7 @@ static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const ui
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 	if (tokens[i].size != size)
 	{
-		return -1;
+		return CGLTF_ERROR_JSON;
 	}
 	++i;
 	for (int j = 0; j < size; ++j)
@@ -962,6 +952,25 @@ static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const ui
 		++i;
 	}
 	return i;
+}
+
+static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, char** out_string)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_STRING);
+	if (*out_string)
+	{
+		return CGLTF_ERROR_JSON;
+	}
+	int size = tokens[i].end - tokens[i].start;
+	char* result = (char*)options->memory_alloc(options->memory_user_data, size + 1);
+	if (!result)
+	{
+		return CGLTF_ERROR_NOMEM;
+	}
+	strncpy(result, (const char*)json_chunk + tokens[i].start, size);
+	result[size] = 0;
+	*out_string = result;
+	return i + 1;
 }
 
 static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_attribute** out_attributes, cgltf_size* out_attributes_count)
@@ -1096,9 +1105,7 @@ static int cgltf_parse_json_mesh(cgltf_options* options, jsmntok_t const* tokens
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_mesh->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_mesh->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "primitives") == 0)
 		{
@@ -1649,9 +1656,7 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 
 		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
 		{
-			++i;
-			out_image->uri = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->uri);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "bufferView") == 0)
 		{
@@ -1661,15 +1666,11 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "mimeType") == 0)
 		{
-			++i;
-			out_image->mime_type = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->mime_type);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_image->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->name);
 		}
 		else
 		{
@@ -1752,9 +1753,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_texture->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_texture->name);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "sampler") == 0)
 		{
@@ -1805,9 +1804,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_material->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_material->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "pbrMetallicRoughness") == 0)
 		{
@@ -2107,9 +2104,7 @@ static int cgltf_parse_json_buffer(cgltf_options* options, jsmntok_t const* toke
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "uri") == 0)
 		{
-			++i;
-			out_buffer->uri = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_buffer->uri);
 		}
 		else
 		{
@@ -2155,9 +2150,7 @@ static int cgltf_parse_json_skin(cgltf_options* options, jsmntok_t const* tokens
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_skin->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_skin->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "joints") == 0)
 		{
@@ -2231,9 +2224,7 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_camera->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_camera->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "type") == 0)
 		{
@@ -2392,9 +2383,7 @@ static int cgltf_parse_json_light(cgltf_options* options, jsmntok_t const* token
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_light->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_light->name);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "color") == 0)
 		{
@@ -2518,9 +2507,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_node->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_node->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "children") == 0)
 		{
@@ -2685,9 +2672,7 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_scene->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_scene->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "nodes") == 0)
 		{
@@ -2883,9 +2868,7 @@ static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* t
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "name") == 0)
 		{
-			++i;
-			out_animation->name = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_animation->name);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "samplers") == 0)
 		{
@@ -2965,27 +2948,19 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "copyright") == 0)
 		{
-			++i;
-			out_asset->copyright = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_asset->copyright);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "generator") == 0)
 		{
-			++i;
-			out_asset->generator = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_asset->generator);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "version") == 0)
 		{
-			++i;
-			out_asset->version = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_asset->version);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "minVersion") == 0)
 		{
-			++i;
-			out_asset->min_version = cgltf_json_to_string_alloc(options, tokens + i, json_chunk);
-			++i;
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_asset->min_version);
 		}
 		else
 		{
@@ -3236,7 +3211,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	if (i < 0)
 	{
 		cgltf_free(data);
-		return cgltf_result_invalid_json;
+		return (i == CGLTF_ERROR_NOMEM) ? cgltf_result_out_of_memory : cgltf_result_invalid_json;
 	}
 
 	if (cgltf_fixup_pointers(data) < 0)
