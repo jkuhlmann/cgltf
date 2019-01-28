@@ -1,6 +1,7 @@
 os:
   - linux
   - osx
+  - windows
 language: c
 compiler:
   - gcc
