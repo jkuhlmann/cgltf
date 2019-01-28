@@ -856,6 +856,7 @@ void cgltf_free(cgltf_data* data)
 
 #define CGLTF_PTRINDEX(type, idx) (type*)(cgltf_size)(idx + 1)
 #define CGLTF_PTRFIXUP(var, data, size) if (var) { if ((cgltf_size)var > size) { return CGLTF_ERROR_JSON; } var = &data[(cgltf_size)var-1]; }
+#define CGLTF_PTRFIXUP_REQ(var, data, size) if (!var || (cgltf_size)var > size) { return CGLTF_ERROR_JSON; } var = &data[(cgltf_size)var-1];
 
 static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, const char* str)
 {
@@ -3299,14 +3300,14 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 			{
-				CGLTF_PTRFIXUP(data->meshes[i].primitives[j].attributes[k].data, data->accessors, data->accessors_count);
+				CGLTF_PTRFIXUP_REQ(data->meshes[i].primitives[j].attributes[k].data, data->accessors, data->accessors_count);
 			}
 
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
 			{
 				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
 				{
-					CGLTF_PTRFIXUP(data->meshes[i].primitives[j].targets[k].attributes[m].data, data->accessors, data->accessors_count);
+					CGLTF_PTRFIXUP_REQ(data->meshes[i].primitives[j].targets[k].attributes[m].data, data->accessors, data->accessors_count);
 				}
 			}
 		}
@@ -3315,8 +3316,12 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->accessors_count; ++i)
 	{
 		CGLTF_PTRFIXUP(data->accessors[i].buffer_view, data->buffer_views, data->buffer_views_count);
-		CGLTF_PTRFIXUP(data->accessors[i].sparse.indices_buffer_view, data->buffer_views, data->buffer_views_count);
-		CGLTF_PTRFIXUP(data->accessors[i].sparse.values_buffer_view, data->buffer_views, data->buffer_views_count);
+
+		if (data->accessors[i].is_sparse)
+		{
+			CGLTF_PTRFIXUP_REQ(data->accessors[i].sparse.indices_buffer_view, data->buffer_views, data->buffer_views_count);
+			CGLTF_PTRFIXUP_REQ(data->accessors[i].sparse.values_buffer_view, data->buffer_views, data->buffer_views_count);
+		}
 
 		if (data->accessors[i].buffer_view)
 		{
@@ -3355,14 +3360,14 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 
 	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
 	{
-		CGLTF_PTRFIXUP(data->buffer_views[i].buffer, data->buffers, data->buffers_count);
+		CGLTF_PTRFIXUP_REQ(data->buffer_views[i].buffer, data->buffers, data->buffers_count);
 	}
 
 	for (cgltf_size i = 0; i < data->skins_count; ++i)
 	{
 		for (cgltf_size j = 0; j < data->skins[i].joints_count; ++j)
 		{
-			CGLTF_PTRFIXUP(data->skins[i].joints[j], data->nodes, data->nodes_count);
+			CGLTF_PTRFIXUP_REQ(data->skins[i].joints[j], data->nodes, data->nodes_count);
 		}
 
 		CGLTF_PTRFIXUP(data->skins[i].skeleton, data->nodes, data->nodes_count);
@@ -3373,7 +3378,7 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	{
 		for (cgltf_size j = 0; j < data->nodes[i].children_count; ++j)
 		{
-			CGLTF_PTRFIXUP(data->nodes[i].children[j], data->nodes, data->nodes_count);
+			CGLTF_PTRFIXUP_REQ(data->nodes[i].children[j], data->nodes, data->nodes_count);
 		}
 
 		CGLTF_PTRFIXUP(data->nodes[i].mesh, data->meshes, data->meshes_count);
@@ -3386,7 +3391,7 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	{
 		for (cgltf_size j = 0; j < data->scenes[i].nodes_count; ++j)
 		{
-			CGLTF_PTRFIXUP(data->scenes[i].nodes[j], data->nodes, data->nodes_count);
+			CGLTF_PTRFIXUP_REQ(data->scenes[i].nodes[j], data->nodes, data->nodes_count);
 		}
 	}
 
@@ -3396,13 +3401,13 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	{
 		for (cgltf_size j = 0; j < data->animations[i].samplers_count; ++j)
 		{
-			CGLTF_PTRFIXUP(data->animations[i].samplers[j].input, data->accessors, data->accessors_count);
-			CGLTF_PTRFIXUP(data->animations[i].samplers[j].output, data->accessors, data->accessors_count);
+			CGLTF_PTRFIXUP_REQ(data->animations[i].samplers[j].input, data->accessors, data->accessors_count);
+			CGLTF_PTRFIXUP_REQ(data->animations[i].samplers[j].output, data->accessors, data->accessors_count);
 		}
 
 		for (cgltf_size j = 0; j < data->animations[i].channels_count; ++j)
 		{
-			CGLTF_PTRFIXUP(data->animations[i].channels[j].sampler, data->animations[i].samplers, data->animations[i].samplers_count);
+			CGLTF_PTRFIXUP_REQ(data->animations[i].channels[j].sampler, data->animations[i].samplers, data->animations[i].samplers_count);
 			CGLTF_PTRFIXUP(data->animations[i].channels[j].target_node, data->nodes, data->nodes_count);
 		}
 	}
