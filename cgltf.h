@@ -321,6 +321,7 @@ typedef struct cgltf_light {
 
 typedef struct cgltf_node {
 	char* name;
+	cgltf_node* parent;
 	cgltf_node** children;
 	cgltf_size children_count;
 	cgltf_skin* skin;
@@ -3379,6 +3380,13 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->nodes[i].children_count; ++j)
 		{
 			CGLTF_PTRFIXUP_REQ(data->nodes[i].children[j], data->nodes, data->nodes_count);
+
+			if (data->nodes[i].children[j]->parent)
+			{
+				return CGLTF_ERROR_JSON;
+			}
+
+			data->nodes[i].children[j]->parent = &data->nodes[i];
 		}
 
 		CGLTF_PTRFIXUP(data->nodes[i].mesh, data->meshes, data->meshes_count);
@@ -3392,6 +3400,11 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->scenes[i].nodes_count; ++j)
 		{
 			CGLTF_PTRFIXUP_REQ(data->scenes[i].nodes[j], data->nodes, data->nodes_count);
+
+			if (data->scenes[i].nodes[j]->parent)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 		}
 	}
 
