@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
+from sys import platform
 
 num_tested = 0
 num_errors = 0
@@ -14,7 +15,11 @@ def collect_files(path, type):
             if the_file.endswith(type):
                 num_tested = num_tested +1
                 print("### Testing: " + file_path)
-                result = os.system("build/cgltf_test " + file_path)
+                result = 0
+                if platform == "win32":
+                    result = os.system("build\\Debug\\cgltf_test \"" + file_path + "\"")
+                else:
+                    result = os.system("build/cgltf_test \"" + file_path + "\"")
                 print("### Result: " + str(result) + "\n")
                 if result != 0:
                     num_errors = num_errors + 1
