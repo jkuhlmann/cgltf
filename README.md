@@ -36,7 +36,8 @@ if (result == cgltf_result_success)
 }
 ```
 
-Note that cgltf does not load the contents of extra files such as buffers or images into memory; you'll need to read these files yourself using URIs from `data.buffers[]` or `data.images[]` respectively.
+Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. You'll need to read these files yourself using URIs from `data.buffers[]` or `data.images[]` respectively.
+For buffer data, you can alternatively call `cgltf_load_buffers`, which will use `FILE*` APIs to open and read buffer files.
 
 ## Support
 
