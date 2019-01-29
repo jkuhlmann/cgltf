@@ -35,7 +35,9 @@ if __name__ == "__main__":
         os.chdir("glTF-Sample-Models")
         os.system("git remote add origin https://github.com/KhronosGroup/glTF-Sample-Models.git")
         os.system("git config core.sparsecheckout true")
-        os.system("echo \"2.0/*\" >> .git/info/sparse-checkout")
+        f = open(".git/info/sparse-checkout", "w+")
+        f.write("2.0/*\n");
+        f.close();
         os.system("git pull --depth=1 origin master")
         os.chdir("..")
     collect_files("glTF-Sample-Models/2.0/", ".glb")
