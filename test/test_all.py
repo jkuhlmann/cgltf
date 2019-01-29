@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os, sys
+from sys import platform
 
 num_tested = 0
 num_errors = 0
@@ -14,7 +15,11 @@ def collect_files(path, type):
             if the_file.endswith(type):
                 num_tested = num_tested +1
                 print("### Testing: " + file_path)
-                result = os.system("build/cgltf_test " + file_path)
+                result = 0
+                if platform == "win32":
+                    result = os.system("build\\Debug\\cgltf_test \"" + file_path + "\"")
+                else:
+                    result = os.system("build/cgltf_test \"" + file_path + "\"")
                 print("### Result: " + str(result) + "\n")
                 if result != 0:
                     num_errors = num_errors + 1
@@ -35,7 +40,9 @@ if __name__ == "__main__":
         os.chdir("glTF-Sample-Models")
         os.system("git remote add origin https://github.com/KhronosGroup/glTF-Sample-Models.git")
         os.system("git config core.sparsecheckout true")
-        os.system("echo \"2.0/*\" >> .git/info/sparse-checkout")
+        f = open(".git/info/sparse-checkout", "w+")
+        f.write("2.0/*\n");
+        f.close();
         os.system("git pull --depth=1 origin master")
         os.chdir("..")
     collect_files("glTF-Sample-Models/2.0/", ".glb")
