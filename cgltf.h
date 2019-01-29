@@ -132,6 +132,7 @@ typedef struct cgltf_buffer
 {
 	cgltf_size size;
 	char* uri;
+	void* data; /* loaded by cgltf_load_buffers */
 } cgltf_buffer;
 
 typedef struct cgltf_buffer_view
@@ -442,6 +443,11 @@ cgltf_result cgltf_parse_file(
 		const char* path,
 		cgltf_data** out_data);
 
+cgltf_result cgltf_load_buffers(
+		const cgltf_options* options,
+		cgltf_data* data,
+		const char* base_path);
+
 void cgltf_free(cgltf_data* data);
 
 #endif /* #ifndef CGLTF_H_INCLUDED__ */
@@ -464,7 +470,6 @@ void cgltf_free(cgltf_data* data);
 #include <string.h> /* For strncpy */
 #include <stdlib.h> /* For malloc, free */
 #include <stdio.h> /* For fopen */
-
 
 /*
  * -- jsmn.h start --
@@ -731,6 +736,168 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 	return cgltf_result_success;
 }
 
+static void cgltf_combine_paths(char* path, const char* base, const char* uri)
+{
+	const char* s0 = strrchr(base, '/');
+	const char* s1 = strrchr(base, '\\');
+	const char* slash = s0 ? (s1 && s1 > s0 ? s1 : s0) : s1;
+
+	if (slash)
+	{
+		size_t prefix = slash - base + 1;
+
+		strncpy(path, base, prefix);
+		strcpy(path + prefix, uri);
+	}
+	else
+	{
+		strcpy(path, base);
+	}
+}
+
+static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_size size, const char* uri, const char* base_path, void** out_data)
+{
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+
+	char* path = (char*)memory_alloc(options->memory_user_data, strlen(uri) + strlen(base_path) + 1);
+	if (!path)
+	{
+		return cgltf_result_out_of_memory;
+	}
+
+	cgltf_combine_paths(path, base_path, uri);
+
+	FILE* file = fopen(path, "rb");
+
+	memory_free(options->memory_user_data, path);
+
+	if (!file)
+	{
+		return cgltf_result_file_not_found;
+	}
+
+	char* file_data = (char*)memory_alloc(options->memory_user_data, size);
+	if (!file_data)
+	{
+		fclose(file);
+		return cgltf_result_out_of_memory;
+	}
+
+	cgltf_size read_size = fread(file_data, 1, size, file);
+
+	fclose(file);
+
+	if (read_size != size)
+	{
+		memory_free(options->memory_user_data, file_data);
+		return cgltf_result_io_error;
+	}
+
+	*out_data = file_data;
+
+	return cgltf_result_success;
+}
+
+static cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data)
+{
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+
+	unsigned char* data = (unsigned char*)memory_alloc(options->memory_user_data, size);
+	if (!data)
+	{
+		return cgltf_result_out_of_memory;
+	}
+
+	unsigned int buffer = 0;
+	unsigned int buffer_bits = 0;
+
+	for (cgltf_size i = 0; i < size; ++i)
+	{
+		while (buffer_bits < 8)
+		{
+			char ch = *base64++;
+
+			int index =
+				(unsigned)(ch - 'A') < 26 ? (ch - 'A') :
+				(unsigned)(ch - 'a') < 26 ? (ch - 'a') + 26 :
+				(unsigned)(ch - '0') < 10 ? (ch - '0') + 52 :
+				ch == '+' ? 62 :
+				ch == '/' ? 63 :
+				-1;
+
+			if (index < 0)
+			{
+				memory_free(options->memory_user_data, data);
+				return cgltf_result_io_error;
+			}
+
+			buffer = (buffer << 6) | index;
+			buffer_bits += 6;
+		}
+
+		data[i] = (unsigned char)(buffer >> (buffer_bits - 8));
+		buffer_bits -= 8;
+	}
+
+	*out_data = data;
+
+	return cgltf_result_success;
+}
+
+cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, const char* base_path)
+{
+	if (options == NULL)
+	{
+		return cgltf_result_invalid_options;
+	}
+
+	if (data->buffers_count && data->buffers[0].data == NULL && data->bin)
+	{
+		data->buffers[0].data = (void*)data->bin;
+	}
+
+	for (cgltf_size i = 0; i < data->buffers_count; ++i)
+	{
+		if (data->buffers[i].data)
+		{
+			continue;
+		}
+
+		const char* uri = data->buffers[i].uri;
+
+		if (uri == NULL)
+		{
+			return cgltf_result_invalid_json;
+		}
+		else if (strncmp(uri, "data:application/octet-stream;base64,", 37) == 0)
+		{
+			cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, uri + 37, &data->buffers[i].data);
+
+			if (res != cgltf_result_success)
+			{
+				return res;
+			}
+		}
+		else if (strstr(uri, "://") == NULL)
+		{
+			cgltf_result res = cgltf_load_buffer_file(options, data->buffers[i].size, uri, base_path, &data->buffers[i].data);
+
+			if (res != cgltf_result_success)
+			{
+				return res;
+			}
+		}
+		else
+		{
+			return cgltf_result_unknown_format;
+		}
+	}
+
+	return cgltf_result_success;
+}
+
 void cgltf_free(cgltf_data* data)
 {
 	if (!data)
@@ -748,6 +915,11 @@ void cgltf_free(cgltf_data* data)
 
 	for (cgltf_size i = 0; i < data->buffers_count; ++i)
 	{
+		if (data->buffers[i].data != data->bin)
+		{
+			data->memory_free(data->memory_user_data, data->buffers[i].data);
+		}
+
 		data->memory_free(data->memory_user_data, data->buffers[i].uri);
 	}
 
