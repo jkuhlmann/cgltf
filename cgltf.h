@@ -173,7 +173,8 @@ typedef struct cgltf_accessor
 
 typedef struct cgltf_attribute
 {
-	cgltf_attribute_type name;
+	char* name;
+	cgltf_attribute_type type;
 	cgltf_accessor* data;
 } cgltf_attribute;
 
@@ -928,15 +929,29 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
 		data->memory_free(data->memory_user_data, data->meshes[i].name);
+
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
+			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+			{
+				data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].attributes[k].name);
+			}
+
 			data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].attributes);
+
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
 			{
+				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
+				{
+					data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets[k].attributes[m].name);
+				}
+
 				data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets[k].attributes);
 			}
+
 			data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets);
 		}
+
 		data->memory_free(data->memory_user_data, data->meshes[i].primitives);
 		data->memory_free(data->memory_user_data, data->meshes[i].weights);
 	}
@@ -1165,6 +1180,46 @@ static int cgltf_parse_json_array(cgltf_options* options, jsmntok_t const* token
 	return i + 1;
 }
 
+static cgltf_attribute_type cgltf_json_to_attribute_type(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
+	if (cgltf_json_strcmp(tok, json_chunk, "POSITION") == 0)
+	{
+		return cgltf_attribute_type_position;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "NORMAL") == 0)
+	{
+		return cgltf_attribute_type_normal;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "TANGENT") == 0)
+	{
+		return cgltf_attribute_type_tangent;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "TEXCOORD_0") == 0)
+	{
+		return cgltf_attribute_type_texcoord_0;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "TEXCOORD_1") == 0)
+	{
+		return cgltf_attribute_type_texcoord_1;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "COLOR_0") == 0)
+	{
+		return cgltf_attribute_type_color_0;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "JOINTS_0") == 0)
+	{
+		return cgltf_attribute_type_joints_0;
+	}
+	else if (cgltf_json_strcmp(tok, json_chunk, "WEIGHTS_0") == 0)
+	{
+		return cgltf_attribute_type_weights_0;
+	}
+	else
+	{
+		return cgltf_attribute_type_invalid;
+	}
+}
+
 static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_attribute** out_attributes, cgltf_size* out_attributes_count)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -1186,40 +1241,15 @@ static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t con
 	for (cgltf_size j = 0; j < *out_attributes_count; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
-		(*out_attributes)[j].name = cgltf_attribute_type_invalid;
-		if (cgltf_json_strcmp(tokens+i, json_chunk, "POSITION") == 0)
+
+		(*out_attributes)[j].type = cgltf_json_to_attribute_type(tokens + i, json_chunk);
+
+		i = cgltf_parse_json_string(options, tokens, i, json_chunk, &(*out_attributes)[j].name);
+		if (i < 0)
 		{
-			(*out_attributes)[j].name = cgltf_attribute_type_position;
+			return CGLTF_ERROR_JSON;
 		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "NORMAL") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_normal;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "TANGENT") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_tangent;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "TEXCOORD_0") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_texcoord_0;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "TEXCOORD_1") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_texcoord_1;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "COLOR_0") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_color_0;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "JOINTS_0") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_joints_0;
-		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "WEIGHTS_0") == 0)
-		{
-			(*out_attributes)[j].name = cgltf_attribute_type_weights_0;
-		}
-		++i;
+
 		(*out_attributes)[j].data = CGLTF_PTRINDEX(cgltf_accessor, cgltf_json_to_int(tokens + i, json_chunk));
 		++i;
 	}
