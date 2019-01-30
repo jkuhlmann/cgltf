@@ -872,13 +872,24 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 		{
 			return cgltf_result_invalid_json;
 		}
-		else if (strncmp(uri, "data:application/octet-stream;base64,", 37) == 0)
+		else if (strncmp(uri, "data:", 5) == 0)
 		{
-			cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, uri + 37, &data->buffers[i].data);
+			const char* comma = strchr(uri, ',');
 
-			if (res != cgltf_result_success)
+			cgltf_result res = cgltf_result_unknown_format;
+
+			if (comma && comma - uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
 			{
-				return res;
+				cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, comma + 1, &data->buffers[i].data);
+
+				if (res != cgltf_result_success)
+				{
+					return res;
+				}
+			}
+			else
+			{
+				return cgltf_result_unknown_format;
 			}
 		}
 		else if (strstr(uri, "://") == NULL)
