@@ -859,6 +859,11 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 
 	if (data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin)
 	{
+		if (data->bin_size < data->buffers[0].size)
+		{
+			return cgltf_result_data_too_short;
+		}
+
 		data->buffers[0].data = (void*)data->bin;
 	}
 
@@ -873,9 +878,10 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 
 		if (uri == NULL)
 		{
-			return cgltf_result_invalid_json;
+			continue;
 		}
-		else if (strncmp(uri, "data:", 5) == 0)
+
+		if (strncmp(uri, "data:", 5) == 0)
 		{
 			const char* comma = strchr(uri, ',');
 
