@@ -961,6 +961,36 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		}
 	}
 
+	for (cgltf_size i = 0; i < data->meshes_count; ++i)
+	{
+		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
+		{
+			if (data->meshes[i].primitives[j].attributes_count)
+			{
+				cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
+
+				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+				{
+					if (data->meshes[i].primitives[j].attributes[k].data->count != first->count)
+					{
+						return cgltf_result_invalid_gltf;
+					}
+				}
+
+				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
+				{
+					for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
+					{
+						if (data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count)
+						{
+							return cgltf_result_invalid_gltf;
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return cgltf_result_success;
 }
 
