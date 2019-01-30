@@ -34,6 +34,7 @@ typedef enum cgltf_result
 	cgltf_result_data_too_short,
 	cgltf_result_unknown_format,
 	cgltf_result_invalid_json,
+	cgltf_result_invalid_gltf,
 	cgltf_result_invalid_options,
 	cgltf_result_file_not_found,
 	cgltf_result_io_error,
@@ -870,7 +871,7 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 
 		if (uri == NULL)
 		{
-			return cgltf_result_invalid_json;
+			continue;
 		}
 		else if (strncmp(uri, "data:application/octet-stream;base64,", 37) == 0)
 		{
@@ -3285,8 +3286,6 @@ static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type componen
 	return size;
 }
 
-static int cgltf_fixup_pointers(cgltf_data* out_data);
-
 static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -3426,6 +3425,9 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 	return i;
 }
 
+static int cgltf_fixup_pointers(cgltf_data* data);
+static int cgltf_validate_basic(cgltf_data* data);
+
 cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk, cgltf_size size, cgltf_data** out_data)
 {
 	jsmn_parser parser = { 0 };
@@ -3484,7 +3486,13 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	if (cgltf_fixup_pointers(data) < 0)
 	{
 		cgltf_free(data);
-		return cgltf_result_invalid_json;
+		return cgltf_result_invalid_gltf;
+	}
+
+	if (cgltf_validate_basic(data) < 0)
+	{
+		cgltf_free(data);
+		return cgltf_result_invalid_gltf;
 	}
 
 	*out_data = data;
@@ -3624,6 +3632,53 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		{
 			CGLTF_PTRFIXUP_REQ(data->animations[i].channels[j].sampler, data->animations[i].samplers, data->animations[i].samplers_count);
 			CGLTF_PTRFIXUP(data->animations[i].channels[j].target_node, data->nodes, data->nodes_count);
+		}
+	}
+
+	return 0;
+}
+
+static int cgltf_validate_basic(cgltf_data* data)
+{
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	{
+		cgltf_accessor* accessor = &data->accessors[i];
+
+		cgltf_size element_size = cgltf_calc_size(accessor->type, accessor->component_type);
+
+		if (accessor->buffer_view)
+		{
+			cgltf_size req_size = accessor->offset + accessor->stride * (accessor->count - 1) + element_size;
+
+			if (accessor->buffer_view->size < req_size)
+			{
+				return CGLTF_ERROR_JSON;
+			}
+		}
+
+		if (accessor->is_sparse)
+		{
+			cgltf_accessor_sparse* sparse = &accessor->sparse;
+
+			cgltf_size indices_component_size = cgltf_calc_size(cgltf_type_scalar, sparse->indices_component_type);
+			cgltf_size indices_req_size = sparse->indices_byte_offset + indices_component_size * sparse->count;
+			cgltf_size values_req_size = sparse->values_byte_offset + element_size * sparse->count;
+
+			if (sparse->indices_buffer_view->size < indices_req_size ||
+				sparse->values_buffer_view->size < values_req_size)
+			{
+				return CGLTF_ERROR_JSON;
+			}
+		}
+	}
+
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	{
+		cgltf_size req_size = data->buffer_views[i].offset + data->buffer_views[i].size;
+
+		if (data->buffer_views[i].buffer && data->buffer_views[i].buffer->size < req_size)
+		{
+			return CGLTF_ERROR_JSON;
 		}
 	}
 
