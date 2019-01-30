@@ -20,6 +20,9 @@ int main(int argc, char** argv)
 	if (result == cgltf_result_success)
 		result = cgltf_load_buffers(&options, data, argv[1]);
 
+	if (result == cgltf_result_success)
+		result = cgltf_validate(data);
+
 	printf("Result: %d\n", result);
 
 	if (result == cgltf_result_success)
