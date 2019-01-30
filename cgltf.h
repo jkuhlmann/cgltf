@@ -854,7 +854,7 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 		return cgltf_result_invalid_options;
 	}
 
-	if (data->buffers_count && data->buffers[0].data == NULL && data->bin)
+	if (data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin)
 	{
 		data->buffers[0].data = (void*)data->bin;
 	}
