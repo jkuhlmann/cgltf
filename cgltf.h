@@ -963,8 +963,21 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
+		if (data->meshes[i].weights)
+		{
+			if (data->meshes[i].primitives_count && data->meshes[i].primitives[0].targets_count != data->meshes[i].weights_count)
+			{
+				return cgltf_result_invalid_gltf;
+			}
+		}
+
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
+			if (data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count)
+			{
+				return cgltf_result_invalid_gltf;
+			}
+
 			if (data->meshes[i].primitives[j].attributes_count)
 			{
 				cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
@@ -987,6 +1000,17 @@ cgltf_result cgltf_validate(cgltf_data* data)
 						}
 					}
 				}
+			}
+		}
+	}
+
+	for (cgltf_size i = 0; i < data->nodes_count; ++i)
+	{
+		if (data->nodes[i].weights && data->nodes[i].mesh)
+		{
+			if (data->nodes[i].mesh->primitives_count && data->nodes[i].mesh->primitives[0].targets_count != data->nodes[i].weights_count)
+			{
+				return cgltf_result_invalid_gltf;
 			}
 		}
 	}
