@@ -34,6 +34,7 @@ typedef enum cgltf_result
 	cgltf_result_data_too_short,
 	cgltf_result_unknown_format,
 	cgltf_result_invalid_json,
+	cgltf_result_invalid_gltf,
 	cgltf_result_invalid_options,
 	cgltf_result_file_not_found,
 	cgltf_result_io_error,
@@ -448,6 +449,9 @@ cgltf_result cgltf_load_buffers(
 		const cgltf_options* options,
 		cgltf_data* data,
 		const char* base_path);
+
+cgltf_result cgltf_validate(
+		cgltf_data* data);
 
 void cgltf_free(cgltf_data* data);
 
@@ -905,6 +909,55 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 		else
 		{
 			return cgltf_result_unknown_format;
+		}
+	}
+
+	return cgltf_result_success;
+}
+
+static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type);
+
+cgltf_result cgltf_validate(cgltf_data* data)
+{
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	{
+		cgltf_accessor* accessor = &data->accessors[i];
+
+		cgltf_size element_size = cgltf_calc_size(accessor->type, accessor->component_type);
+
+		if (accessor->buffer_view)
+		{
+			cgltf_size req_size = accessor->offset + accessor->stride * (accessor->count - 1) + element_size;
+
+			if (accessor->buffer_view->size < req_size)
+			{
+				return cgltf_result_data_too_short;
+			}
+		}
+
+		if (accessor->is_sparse)
+		{
+			cgltf_accessor_sparse* sparse = &accessor->sparse;
+
+			cgltf_size indices_component_size = cgltf_calc_size(cgltf_type_scalar, sparse->indices_component_type);
+			cgltf_size indices_req_size = sparse->indices_byte_offset + indices_component_size * sparse->count;
+			cgltf_size values_req_size = sparse->values_byte_offset + element_size * sparse->count;
+
+			if (sparse->indices_buffer_view->size < indices_req_size ||
+				sparse->values_buffer_view->size < values_req_size)
+			{
+				return cgltf_result_data_too_short;
+			}
+		}
+	}
+
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	{
+		cgltf_size req_size = data->buffer_views[i].offset + data->buffer_views[i].size;
+
+		if (data->buffer_views[i].buffer && data->buffer_views[i].buffer->size < req_size)
+		{
+			return cgltf_result_data_too_short;
 		}
 	}
 
@@ -3574,13 +3627,13 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	if (i < 0)
 	{
 		cgltf_free(data);
-		return (i == CGLTF_ERROR_NOMEM) ? cgltf_result_out_of_memory : cgltf_result_invalid_json;
+		return (i == CGLTF_ERROR_NOMEM) ? cgltf_result_out_of_memory : cgltf_result_invalid_gltf;
 	}
 
 	if (cgltf_fixup_pointers(data) < 0)
 	{
 		cgltf_free(data);
-		return cgltf_result_invalid_json;
+		return cgltf_result_invalid_gltf;
 	}
 
 	*out_data = data;
