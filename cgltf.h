@@ -923,6 +923,44 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 
 static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type);
 
+static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_size offset, cgltf_component_type component_type, cgltf_size count)
+{
+	char* data = (char*)buffer_view->buffer->data + offset + buffer_view->offset;
+	cgltf_size bound = 0;
+
+	switch (component_type)
+	{
+	case cgltf_component_type_r_8u:
+		for (size_t i = 0; i < count; ++i)
+		{
+			cgltf_size v = ((unsigned char*)data)[i];
+			bound = bound > v ? bound : v;
+		}
+		break;
+
+	case cgltf_component_type_r_16u:
+		for (size_t i = 0; i < count; ++i)
+		{
+			cgltf_size v = ((unsigned short*)data)[i];
+			bound = bound > v ? bound : v;
+		}
+		break;
+
+	case cgltf_component_type_r_32u:
+		for (size_t i = 0; i < count; ++i)
+		{
+			cgltf_size v = ((unsigned int*)data)[i];
+			bound = bound > v ? bound : v;
+		}
+		break;
+
+	default:
+		;
+	}
+
+	return bound;
+}
+
 cgltf_result cgltf_validate(cgltf_data* data)
 {
 	for (cgltf_size i = 0; i < data->accessors_count; ++i)
@@ -953,6 +991,23 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				sparse->values_buffer_view->size < values_req_size)
 			{
 				return cgltf_result_data_too_short;
+			}
+
+			if (sparse->indices_component_type != cgltf_component_type_r_8u &&
+				sparse->indices_component_type != cgltf_component_type_r_16u &&
+				sparse->indices_component_type != cgltf_component_type_r_32u)
+			{
+				return cgltf_result_invalid_gltf;
+			}
+
+			if (sparse->indices_buffer_view->buffer->data)
+			{
+				cgltf_size index_bound = cgltf_calc_index_bound(sparse->indices_buffer_view, sparse->indices_byte_offset, sparse->indices_component_type, sparse->count);
+
+				if (index_bound >= accessor->count)
+				{
+					return cgltf_result_data_too_short;
+				}
 			}
 		}
 	}
@@ -1004,6 +1059,26 @@ cgltf_result cgltf_validate(cgltf_data* data)
 						{
 							return cgltf_result_invalid_gltf;
 						}
+					}
+				}
+
+				cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
+
+				if (indices &&
+					indices->component_type != cgltf_component_type_r_8u &&
+					indices->component_type != cgltf_component_type_r_16u &&
+					indices->component_type != cgltf_component_type_r_32u)
+				{
+					return cgltf_result_invalid_gltf;
+				}
+
+				if (indices && indices->buffer_view && indices->buffer_view->buffer->data)
+				{
+					cgltf_size index_bound = cgltf_calc_index_bound(indices->buffer_view, indices->offset, indices->component_type, indices->count);
+
+					if (index_bound >= first->count)
+					{
+						return cgltf_result_data_too_short;
 					}
 				}
 			}
