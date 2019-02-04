@@ -4,7 +4,6 @@
 [![Build Status](https://travis-ci.org/jkuhlmann/cgltf.svg?branch=master)](https://travis-ci.org/jkuhlmann/cgltf)
 
 ## Usage
-
 Loading from file:
 ```c
 #include "cgltf.h"
@@ -39,8 +38,18 @@ if (result == cgltf_result_success)
 Note that cgltf does not load the contents of extra files such as buffers or images into memory by default. You'll need to read these files yourself using URIs from `data.buffers[]` or `data.images[]` respectively.
 For buffer data, you can alternatively call `cgltf_load_buffers`, which will use `FILE*` APIs to open and read buffer files.
 
-## Support
+## Reference
+`cgltf_result cgltf_parse(const cgltf_options*, const void*, cgltf_size, cgltf_data**)` parses both glTF and GLB data. If this function returns `cgltf_result_success`, you have to call `cgltf_free()` on the created `cgltf_data*` variable.
 
+`cgltf_options` is the struct passed to `cgltf_parse()` to control parts of the parsing process. You can use it to force the file type and provide memory allocation callbacks.
+
+`cgltf_data` is the struct allocated and filled by `cgltf_parse()`. It generally mirrors the glTF format as described by the spec (see https://github.com/KhronosGroup/glTF/tree/master/specification/2.0).
+
+`void cgltf_free(cgltf_data*)` frees the allocated `cgltf_data` variable.
+
+`cgltf_result cgltf_validate(cgltf_data*)` is an optional function you can call to do additional checks to make sure the parsed glTF data is valid.
+
+## Support
 cgltf supports core glTF 2.0:
 - glb (binary files) and gltf (JSON files)
 - meshes (including accessors, buffer views, buffers)
@@ -66,16 +75,15 @@ The easiest approach is to integrate the `cgltf.h` header file into your project
 1. Have exactly one source file that defines `CGLTF_IMPLEMENTATION` before including `cgltf.h`.
 1. Use the cgltf functions as described above.
 
-For testing, there is a CMake file in test `test/` folder.
-
 ## Contributing
 Everyone is welcome to contribute to the library. If you find any problems, you can submit them using [GitHub's issue system](https://github.com/jkuhlmann/cgltf/issues). If you want to contribute code, you should fork the project and then send a pull request.
 
 ## Dependencies
-Basically none.
+None.
 
 C headers being used:
 ```
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -85,5 +93,6 @@ C headers being used:
 Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserge/jsmn) embedded in its source.
 
 ## Testing
-There is a Python script in the `test/` folder that retrieves the glTF sample files from the glTF-Sample-Models repository and runs the library against all gltf and glb files in there.
+There is a Python script in the `test/` folder that retrieves the glTF 2.0 sample files from the glTF-Sample-Models repository (https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0) and runs the library against all gltf and glb files.
 
+There is also a llvm-fuzz test in `fuzz/`. See http://llvm.org/docs/LibFuzzer.html for more information.
