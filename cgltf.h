@@ -589,7 +589,7 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 		{
 			fixed_options.type = cgltf_file_type_gltf;
 		}
-		else
+		else if (fixed_options.type == cgltf_file_type_glb)
 		{
 			return cgltf_result_unknown_format;
 		}
