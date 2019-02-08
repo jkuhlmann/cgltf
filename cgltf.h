@@ -25,7 +25,7 @@ typedef enum cgltf_file_type
 
 typedef struct cgltf_options
 {
-	cgltf_file_type type;
+	cgltf_file_type type; /* invalid == auto detect */
 	cgltf_size json_token_count; /* 0 == auto */
 	void* (*memory_alloc)(void* user, cgltf_size size);
 	void (*memory_free) (void* user, void* ptr);
@@ -1549,6 +1549,8 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
+	out_prim->type = cgltf_primitive_type_triangles;
+
 	int size = tokens[i].size;
 	++i;
 
@@ -2208,6 +2210,9 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_sampler* out_sampler)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	out_sampler->wrap_s = 10497;
+	out_sampler->wrap_t = 10497;
 
 	int size = tokens[i].size;
 	++i;
