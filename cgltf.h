@@ -462,6 +462,10 @@ void cgltf_free(cgltf_data* data);
 void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix);
 void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix);
 
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* #ifndef CGLTF_H_INCLUDED__ */
 
 /*
@@ -4265,10 +4269,6 @@ static void jsmn_init(jsmn_parser *parser) {
  */
 
 #endif /* #ifdef CGLTF_IMPLEMENTATION */
-
-#ifdef __cplusplus
-}
-#endif
 
 /* cgltf is distributed under MIT license:
  *
