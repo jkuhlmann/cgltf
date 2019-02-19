@@ -72,13 +72,14 @@ Everyone is welcome to contribute to the library. If you find any problems, you 
 ## Dependencies
 None.
 
-C headers being used:
+C headers being used by implementation:
 ```
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 ```
 
 Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserge/jsmn) embedded in its source.

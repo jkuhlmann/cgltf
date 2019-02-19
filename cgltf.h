@@ -505,6 +505,9 @@ void cgltf_free(cgltf_data* data);
 void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix);
 void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix);
 
+cgltf_float cgltf_accessor_read_float(const cgltf_accessor* accessor, size_t index, size_t component);
+cgltf_int cgltf_accessor_read_int(const cgltf_accessor* accessor, size_t index, size_t component);
+
 #ifdef __cplusplus
 }
 #endif
@@ -528,7 +531,8 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 #include <stdint.h> /* For uint8_t, uint32_t */
 #include <string.h> /* For strncpy */
 #include <stdlib.h> /* For malloc, free */
-#include <stdio.h> /* For fopen */
+#include <stdio.h>  /* For fopen */
+#include <limits.h> /* For UINT_MAX etc */
 
 /*
  * -- jsmn.h start --
@@ -1365,6 +1369,221 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 
 		parent = parent->parent;
 	}
+}
+
+static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_type component_type, cgltf_bool normalized)
+{
+	if (component_type == cgltf_component_type_r_32f)
+	{
+		return *((const float*) in);
+	}
+
+	if (normalized)
+	{
+		switch (component_type)
+		{
+			case cgltf_component_type_r_32u:
+				return *((const uint32_t*) in) / (float) UINT_MAX;
+			case cgltf_component_type_r_16:
+				return *((const int16_t*) in) / (float) SHRT_MAX;
+			case cgltf_component_type_r_16u:
+				return *((const uint16_t*) in) / (float) USHRT_MAX;
+			case cgltf_component_type_r_8:
+				return *((const int8_t*) in) / (float) SCHAR_MAX;
+			case cgltf_component_type_r_8u:
+			case cgltf_component_type_invalid:
+			default:
+				return *((const uint8_t*) in) / (float) CHAR_MAX;
+		}
+	}
+
+	switch (component_type)
+	{
+		case cgltf_component_type_r_32u:
+			return *((const uint32_t*) in);
+		case cgltf_component_type_r_16:
+			return *((const int16_t*) in);
+		case cgltf_component_type_r_16u:
+			return *((const uint16_t*) in);
+		case cgltf_component_type_r_8:
+			return *((const int8_t*) in);
+		case cgltf_component_type_r_8u:
+		case cgltf_component_type_invalid:
+		default:
+			return *((const uint8_t*) in);
+	}
+}
+
+static cgltf_int cgltf_component_read_int(const void* in, cgltf_component_type component_type)
+{
+	switch (component_type)
+	{
+		case cgltf_component_type_r_16:
+			return *((const int16_t*) in);
+		case cgltf_component_type_r_16u:
+			return *((const uint16_t*) in);
+		case cgltf_component_type_r_32u:
+			return *((const uint32_t*) in);
+		case cgltf_component_type_r_32f:
+			return *((const float*) in);
+		case cgltf_component_type_r_8u:
+		case cgltf_component_type_invalid:
+		default:
+			return *((const uint8_t*) in);
+	}
+}
+
+static cgltf_size cgltf_component_size(cgltf_component_type component_type);
+
+static cgltf_int cgltf_element_read_int(const uint8_t* element, cgltf_type type, cgltf_component_type component_type, size_t component)
+{
+	cgltf_size component_size = cgltf_component_size(component_type);
+
+	// There are three special cases for component extraction, see #data-alignment in the 2.0 spec.
+
+	if (type == cgltf_type_mat2 && component_size == 1)
+	{
+		cgltf_int out[] = {
+			cgltf_component_read_int(element, component_type),
+			cgltf_component_read_int(element + 1, component_type),
+			cgltf_component_read_int(element + 4, component_type),
+			cgltf_component_read_int(element + 5, component_type)
+		};
+		return out[component];
+	}
+
+	if (type == cgltf_type_mat3 && component_size == 1)
+	{
+		cgltf_int out[] = {
+			cgltf_component_read_int(element, component_type),
+			cgltf_component_read_int(element + 1, component_type),
+			cgltf_component_read_int(element + 2, component_type),
+			cgltf_component_read_int(element + 4, component_type),
+			cgltf_component_read_int(element + 5, component_type),
+			cgltf_component_read_int(element + 6, component_type),
+			cgltf_component_read_int(element + 8, component_type),
+			cgltf_component_read_int(element + 9, component_type),
+			cgltf_component_read_int(element + 10, component_type)
+		};
+		return out[component];
+	}
+
+	if (type == cgltf_type_mat3 && component_size == 2)
+	{
+		cgltf_int out[] = {
+			cgltf_component_read_int(element, component_type),
+			cgltf_component_read_int(element + 2, component_type),
+			cgltf_component_read_int(element + 4, component_type),
+			cgltf_component_read_int(element + 8, component_type),
+			cgltf_component_read_int(element + 10, component_type),
+			cgltf_component_read_int(element + 12, component_type),
+			cgltf_component_read_int(element + 16, component_type),
+			cgltf_component_read_int(element + 18, component_type),
+			cgltf_component_read_int(element + 20, component_type)
+		};
+		return out[component];
+	}
+
+	return cgltf_component_read_int(element + component_size * component, component_type);
+}
+
+static cgltf_float cgltf_element_read_float(const uint8_t* element, cgltf_type type, cgltf_component_type component_type, cgltf_bool normalized, size_t component)
+{
+	cgltf_size component_size = cgltf_component_size(component_type);
+
+	// There are three special cases for component extraction, see #data-alignment in the 2.0 spec.
+
+	if (type == cgltf_type_mat2 && component_size == 1)
+	{
+		cgltf_float out[] = {
+			cgltf_component_read_float(element, component_type, normalized),
+			cgltf_component_read_float(element + 1, component_type, normalized),
+			cgltf_component_read_float(element + 4, component_type, normalized),
+			cgltf_component_read_float(element + 5, component_type, normalized)
+		};
+		return out[component];
+	}
+
+	if (type == cgltf_type_mat3 && component_size == 1)
+	{
+		cgltf_float out[] = {
+			cgltf_component_read_float(element, component_type, normalized),
+			cgltf_component_read_float(element + 1, component_type, normalized),
+			cgltf_component_read_float(element + 2, component_type, normalized),
+			cgltf_component_read_float(element + 4, component_type, normalized),
+			cgltf_component_read_float(element + 5, component_type, normalized),
+			cgltf_component_read_float(element + 6, component_type, normalized),
+			cgltf_component_read_float(element + 8, component_type, normalized),
+			cgltf_component_read_float(element + 9, component_type, normalized),
+			cgltf_component_read_float(element + 10, component_type, normalized)
+		};
+		return out[component];
+	}
+
+	if (type == cgltf_type_mat3 && component_size == 2)
+	{
+		cgltf_float out[] = {
+			cgltf_component_read_float(element, component_type, normalized),
+			cgltf_component_read_float(element + 2, component_type, normalized),
+			cgltf_component_read_float(element + 4, component_type, normalized),
+			cgltf_component_read_float(element + 8, component_type, normalized),
+			cgltf_component_read_float(element + 10, component_type, normalized),
+			cgltf_component_read_float(element + 12, component_type, normalized),
+			cgltf_component_read_float(element + 16, component_type, normalized),
+			cgltf_component_read_float(element + 18, component_type, normalized),
+			cgltf_component_read_float(element + 20, component_type, normalized)
+		};
+		return out[component];
+	}
+
+	return cgltf_component_read_float(element + component_size * component, component_type, normalized);
+}
+
+
+cgltf_float cgltf_accessor_read_float(const cgltf_accessor* accessor, size_t index, size_t component)
+{
+	if (accessor->is_sparse)
+	{
+		const cgltf_accessor_sparse* sparse = &accessor->sparse;
+		cgltf_size index_offset = sparse->indices_byte_offset + sparse->indices_buffer_view->offset;
+		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
+		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
+		index_element += index_offset + index_stride * index;
+		index = cgltf_element_read_int(index_element, cgltf_type_scalar, sparse->indices_component_type, 0);
+
+		cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
+		const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
+		element += offset + accessor->stride * index;
+		return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, component);
+	}
+
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
+	element += offset + accessor->stride * index;
+	return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, component);
+}
+
+cgltf_int cgltf_accessor_read_int(const cgltf_accessor* accessor, size_t index, size_t component)
+{
+	if (accessor->is_sparse)
+	{
+		const cgltf_accessor_sparse* sparse = &accessor->sparse;
+		cgltf_size index_offset = sparse->indices_byte_offset + sparse->indices_buffer_view->offset;
+		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
+		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
+		index_element += index_offset + index_stride * index;
+		index = cgltf_element_read_int(index_element, cgltf_type_scalar, sparse->indices_component_type, 0);
+
+		cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
+		const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
+		element += offset + accessor->stride * index;
+		return cgltf_element_read_int(element, accessor->type, accessor->component_type, component);
+	}
+
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
+	element += offset + accessor->stride * index;
+	return cgltf_element_read_int(element, accessor->type, accessor->component_type, component);
 }
 
 #define CGLTF_ERROR_JSON -1
@@ -3571,58 +3790,49 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 	return i;
 }
 
-static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
-{
-	cgltf_size size = 0;
+static cgltf_size cgltf_num_components(cgltf_type type) {
+	switch (type)
+	{
+	case cgltf_type_vec2:
+		return 2;
+	case cgltf_type_vec3:
+		return 3;
+	case cgltf_type_vec4:
+		return 4;
+	case cgltf_type_mat2:
+		return 4;
+	case cgltf_type_mat3:
+		return 9;
+	case cgltf_type_mat4:
+		return 16;
+	case cgltf_type_invalid:
+	case cgltf_type_scalar:
+	default:
+		return 1;
+	}
+}
 
+static cgltf_size cgltf_component_size(cgltf_component_type component_type) {
 	switch (component_type)
 	{
 	case cgltf_component_type_r_8:
 	case cgltf_component_type_r_8u:
-		size = 1;
-		break;
+		return 1;
 	case cgltf_component_type_r_16:
 	case cgltf_component_type_r_16u:
-		size = 2;
-		break;
+		return 2;
 	case cgltf_component_type_r_32u:
 	case cgltf_component_type_r_32f:
-		size = 4;
-		break;
+		return 4;
 	case cgltf_component_type_invalid:
 	default:
-		size = 0;
-		break;
+		return 0;
 	}
+}
 
-	switch (type)
-	{
-	case cgltf_type_vec2:
-		size *= 2;
-		break;
-	case cgltf_type_vec3:
-		size *= 3;
-		break;
-	case cgltf_type_vec4:
-		size *= 4;
-		break;
-	case cgltf_type_mat2:
-		size *= 4;
-		break;
-	case cgltf_type_mat3:
-		size *= 9;
-		break;
-	case cgltf_type_mat4:
-		size *= 16;
-		break;
-	case cgltf_type_invalid:
-	case cgltf_type_scalar:
-	default:
-		size *= 1;
-		break;
-	}
-
-	return size;
+static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
+{
+    return cgltf_component_size(component_type) * cgltf_num_components(type);
 }
 
 static int cgltf_fixup_pointers(cgltf_data* out_data);
