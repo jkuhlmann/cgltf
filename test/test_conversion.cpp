@@ -40,7 +40,7 @@ int main(int argc, char** argv)
 			cgltf_float max0 = std::numeric_limits<float>::lowest();
 			for (cgltf_size index = 0; index < blob->count; index++)
 			{
-				cgltf_accessor_read_float(blob, index, element);
+				cgltf_accessor_read_float(blob, index, element, 16);
 				min0 = std::min(min0, element[0]);
 				max0 = std::max(max0, element[0]);
 			}
