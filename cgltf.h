@@ -54,7 +54,7 @@
  * `cgltf_accessor_read_float` reads a certain element from an accessor and converts it to
  * floating point, assuming that `cgltf_load_buffers` has already been called. The passed-in element
  * size is the number of floats in the output buffer, which should be in the range [1, 16]. Returns
- * false if the passed-in element_size is too small.
+ * false if the passed-in element_size is too small, or if the accessor is sparse.
  *
  * `cgltf_accessor_read_index` is similar to its floating-point counterpart, but it returns size_t
  * and only works with single-component data types.
@@ -1497,53 +1497,19 @@ static cgltf_bool cgltf_element_read_float(const uint8_t* element, cgltf_type ty
 
 cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size)
 {
-	if (accessor->is_sparse)
+	if (accessor->is_sparse || accessor->buffer_view == NULL)
 	{
-		const cgltf_accessor_sparse* sparse = &accessor->sparse;
-		cgltf_size index_offset = sparse->indices_byte_offset + sparse->indices_buffer_view->offset;
-		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
-		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
-		index_element += index_offset + index_stride * index;
-		size_t overlay_index = cgltf_component_read_index(index_element, sparse->indices_component_type);
-		if (overlay_index == index)
-		{
-			cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
-			const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
-			element += offset + accessor->stride * index;
-			return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
-		}
+		return 0;
 	}
 
-	if (accessor->buffer_view)
-	{
-		cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
-		const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
-		element += offset + accessor->stride * index;
-		return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
-	}
-
-	return 0;
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
+	element += offset + accessor->stride * index;
+	return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
 }
 
 cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size index)
 {
-	if (accessor->is_sparse)
-	{
-		const cgltf_accessor_sparse* sparse = &accessor->sparse;
-		cgltf_size index_offset = sparse->indices_byte_offset + sparse->indices_buffer_view->offset;
-		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
-		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
-		index_element += index_offset + index_stride * index;
-		size_t overlay_index = cgltf_component_read_index(index_element, sparse->indices_component_type);
-		if (overlay_index == index)
-		{
-			cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
-			const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
-			element += offset + accessor->stride * index;
-			return cgltf_component_read_index(element, accessor->component_type);
-		}
-	}
-
 	if (accessor->buffer_view)
 	{
 		cgltf_size offset = accessor->offset + accessor->buffer_view->offset;

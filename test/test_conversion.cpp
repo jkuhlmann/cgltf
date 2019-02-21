@@ -34,6 +34,10 @@ int main(int argc, char** argv)
 	for (cgltf_size blob_index = 0; blob_index < data->accessors_count; ++blob_index)
 	{
 		const cgltf_accessor* blob = data->accessors + blob_index;
+		if (blob->is_sparse)
+		{
+			continue;
+		}
 		if (blob->has_max && blob->has_min)
 		{
 			cgltf_float min0 = std::numeric_limits<float>::max();
