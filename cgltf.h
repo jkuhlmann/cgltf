@@ -1495,12 +1495,14 @@ cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size 
 		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
 		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
 		index_element += index_offset + index_stride * index;
-		index = cgltf_component_read_index(index_element, sparse->indices_component_type);
-
-		cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
-		const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
-		element += offset + accessor->stride * index;
-		return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
+		size_t overlay_index = cgltf_component_read_index(index_element, sparse->indices_component_type);
+		if (overlay_index == index)
+		{
+			cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
+			const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
+			element += offset + accessor->stride * index;
+			return cgltf_element_read_float(element, accessor->type, accessor->component_type, accessor->normalized, out, element_size);
+		}
 	}
 
 	if (accessor->buffer_view)
@@ -1523,12 +1525,14 @@ cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size 
 		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
 		const uint8_t* index_element = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
 		index_element += index_offset + index_stride * index;
-		index = cgltf_component_read_index(index_element, sparse->indices_component_type);
-
-		cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
-		const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
-		element += offset + accessor->stride * index;
-		return cgltf_component_read_index(element, accessor->component_type);
+		size_t overlay_index = cgltf_component_read_index(index_element, sparse->indices_component_type);
+		if (overlay_index == index)
+		{
+			cgltf_size offset = sparse->values_byte_offset + sparse->values_buffer_view->offset;
+			const uint8_t* element = (const uint8_t*) sparse->values_buffer_view->buffer->data;
+			element += offset + accessor->stride * index;
+			return cgltf_component_read_index(element, accessor->component_type);
+		}
 	}
 
 	if (accessor->buffer_view)
@@ -1539,7 +1543,7 @@ cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size 
 		return cgltf_component_read_index(element, accessor->component_type);
 	}
 
-	return (cgltf_size)(-1);
+	return 0;
 }
 
 #define CGLTF_ERROR_JSON -1

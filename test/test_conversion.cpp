@@ -47,10 +47,7 @@ int main(int argc, char** argv)
 			if (!is_near(min0, blob->min[0]) || !is_near(max0, blob->max[0]))
 			{
 				printf("Computed [%f, %f] but expected [%f, %f]\n", min0, max0, blob->min[0], blob->max[0]);
-				if (!blob->is_sparse)
-				{
-					return -1;
-				}
+				return -1;
 			}
 		}
 	}
