@@ -44,6 +44,20 @@
  *
  * `cgltf_result cgltf_validate(cgltf_data*)` can be used to do additional
  * checks to make sure the parsed glTF data is valid.
+ *
+ * `cgltf_node_transform_local` converts the translation / rotation / scale properties of a node
+ * into a mat4.
+ *
+ * `cgltf_node_transform_world` calls `cgltf_node_transform_local` on every ancestor in order
+ * to compute the root-to-node transformation.
+ *
+ * `cgltf_accessor_read_float` reads a certain element from an accessor and converts it to
+ * floating point, assuming that `cgltf_load_buffers` has already been called. The passed-in element
+ * size is the number of floats in the output buffer, which should be in the range [1, 16]. Returns
+ * false if the passed-in element_size is too small.
+ *
+ * `cgltf_accessor_read_index` is similar to its floating-point counterpart, but it returns size_t
+ * and only works with single-component data types.
  */
 #ifndef CGLTF_H_INCLUDED__
 #define CGLTF_H_INCLUDED__
@@ -505,12 +519,7 @@ void cgltf_free(cgltf_data* data);
 void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix);
 void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix);
 
-// Reads the element at the given index and converts it to floating point. The passed-in element
-// size is the number of floats in the output buffer, which should be in the range [1, 16].
-// Returns false if the passed-in element_size is too small.
 cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size);
-
-// Reads a single element from a scalar-typed accessor and converts it to size_t.
 cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size index);
 
 #ifdef __cplusplus
