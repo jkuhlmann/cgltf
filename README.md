@@ -87,4 +87,11 @@ Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserg
 ## Testing
 There is a Python script in the `test/` folder that retrieves the glTF 2.0 sample files from the glTF-Sample-Models repository (https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0) and runs the library against all gltf and glb files.
 
+Here's one way to build and run the test:
+
+    cd test ; mkdir build ; cd build ; cmake .. -DCMAKE_BUILD_TYPE=Debug
+    make -j
+    cd ..
+    ./test_all.py
+
 There is also a llvm-fuzz test in `fuzz/`. See http://llvm.org/docs/LibFuzzer.html for more information.

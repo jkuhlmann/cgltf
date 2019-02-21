@@ -6,7 +6,7 @@ from sys import platform
 num_tested = 0
 num_errors = 0
 
-def collect_files(path, type):
+def collect_files(path, type, exe):
     global num_tested
     global num_errors
     for the_file in os.listdir(path):
@@ -17,16 +17,16 @@ def collect_files(path, type):
                 print("### Testing: " + file_path)
                 result = 0
                 if platform == "win32":
-                    result = os.system("build\\Debug\\cgltf_test \"" + file_path + "\"")
+                    result = os.system("build\\Debug\\{0} \"{1}\"".format(exe, file_path))
                 else:
-                    result = os.system("build/cgltf_test \"" + file_path + "\"")
+                    result = os.system("build/{0} \"{1}\"".format(exe, file_path))
                 print("### Result: " + str(result) + "\n")
                 if result != 0:
                     num_errors = num_errors + 1
                     print("Error.")
                     sys.exit(1)
         elif os.path.isdir(file_path):
-            collect_files(file_path, type)
+            collect_files(file_path, type, exe)
 
 if __name__ == "__main__":
     if not os.path.exists("build/"):
@@ -45,8 +45,10 @@ if __name__ == "__main__":
         f.close();
         os.system("git pull --depth=1 origin master")
         os.chdir("..")
-    collect_files("glTF-Sample-Models/2.0/", ".glb")
-    collect_files("glTF-Sample-Models/2.0/", ".gltf")
+    collect_files("glTF-Sample-Models/2.0/", ".glb", "cgltf_test")
+    collect_files("glTF-Sample-Models/2.0/", ".gltf", "cgltf_test")
+    collect_files("glTF-Sample-Models/2.0/", ".glb", "test_conversion")
+    collect_files("glTF-Sample-Models/2.0/", ".gltf", "test_conversion")
     print("Tested files: " + str(num_tested))
     print("Errors: " + str(num_errors))
 
