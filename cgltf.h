@@ -38,6 +38,11 @@
  * const char*)` can be optionally called to open and read buffer
  * files using the `FILE*` APIs.
  *
+ * `cgltf_result cgltf_load_buffer_base64(const cgltf_options* options,
+ * cgltf_size size, const char* base64, void** out_data)` decodes
+ * base64-encoded data content. Used internally by `cgltf_load_buffers()`
+ * and may be useful if you're not dealing with normal files.
+ *
  * `cgltf_result cgltf_parse_file(const cgltf_options* options, const
  * char* path, cgltf_data** out_data)` can be used to open the given
  * file using `FILE*` APIs and parse the data using `cgltf_parse()`.
@@ -511,6 +516,9 @@ cgltf_result cgltf_load_buffers(
 		cgltf_data* data,
 		const char* base_path);
 
+
+cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data);
+
 cgltf_result cgltf_validate(
 		cgltf_data* data);
 
@@ -876,7 +884,7 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 	return cgltf_result_success;
 }
 
-static cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data)
+cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data)
 {
 	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
 	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
