@@ -3767,7 +3767,16 @@ static cgltf_size cgltf_component_size(cgltf_component_type component_type) {
 
 static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
 {
-    return cgltf_component_size(component_type) * cgltf_num_components(type);
+	cgltf_size component_size = cgltf_component_size(component_type);
+	if (type == cgltf_type_mat2 && component_size == 1)
+	{
+		return 8 * component_size;
+	}
+	else if (type == cgltf_type_mat3 && (component_size == 1 || component_size == 2))
+	{
+		return 12 * component_size;
+	}
+	return component_size * cgltf_num_components(type);
 }
 
 static int cgltf_fixup_pointers(cgltf_data* out_data);
