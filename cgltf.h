@@ -836,7 +836,19 @@ static void cgltf_combine_paths(char* path, const char* base, const char* uri)
 	}
 	else
 	{
-		strcpy(path, base);
+		if (base == NULL || base[0] == '\0')
+		{
+			strcpy(path, uri);
+			return;
+		}
+		size_t sz = strlen(base);
+		strncpy(path, base, sz);
+		#ifdef _WIN32
+			path[sz++] = '\\';
+		#else
+			path[sz++] = '/';
+		#endif
+		strcpy(path + sz, uri);
 	}
 }
 
