@@ -58,9 +58,9 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #include <stdio.h>
 
 #define CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM   (1 << 0)
-#define CGLTF_EXTENSION_FLAG_MATERIALS_UNLIT	 (1 << 1)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_UNLIT     (1 << 1)
 #define CGLTF_EXTENSION_FLAG_SPECULAR_GLOSSINESS (1 << 2)
-#define CGLTF_EXTENSION_FLAG_LIGHTS_PUNCTUAL	 (1 << 3)
+#define CGLTF_EXTENSION_FLAG_LIGHTS_PUNCTUAL     (1 << 3)
 
 typedef struct {
 	char* buffer;
@@ -369,11 +369,16 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 	cgltf_write_strprop(context, "name", material->name);
 	cgltf_write_floatprop(context, "alphaCutoff", material->alpha_cutoff, 0.5f);
 	cgltf_write_boolprop_optional(context, "doubleSided", material->double_sided, false);
-	cgltf_write_boolprop_optional(context, "unlit", material->unlit, false);
+	// cgltf_write_boolprop_optional(context, "unlit", material->unlit, false);
 
 	if (material->unlit)
 	{
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_UNLIT;
+	}
+
+	if (material->has_pbr_specular_glossiness)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_SPECULAR_GLOSSINESS;
 	}
 
 	if (material->has_pbr_metallic_roughness)
@@ -391,24 +396,30 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		cgltf_write_line(context, "}");
 	}
 
-	if (material->has_pbr_specular_glossiness)
+	if (material->unlit || material->has_pbr_specular_glossiness)
 	{
-		const auto& params = material->pbr_specular_glossiness;
-		context->extension_flags |= CGLTF_EXTENSION_FLAG_SPECULAR_GLOSSINESS;
 		cgltf_write_line(context, "\"extensions\": {");
-		cgltf_write_line(context, "\"KHR_materials_pbrSpecularGlossiness\": {");
-		CGLTF_WRITE_TEXTURE_INFO("diffuseTexture", params.diffuse_texture);
-		CGLTF_WRITE_TEXTURE_INFO("specularGlossinessTexture", params.specular_glossiness_texture);
-		if (cgltf_check_floatarray(params.diffuse_factor, 4, 1.0f))
+		if (material->has_pbr_specular_glossiness)
 		{
-			cgltf_write_floatarrayprop(context, "dffuseFactor", params.diffuse_factor, 4);
+			const auto& params = material->pbr_specular_glossiness;
+			cgltf_write_line(context, "\"KHR_materials_pbrSpecularGlossiness\": {");
+			CGLTF_WRITE_TEXTURE_INFO("diffuseTexture", params.diffuse_texture);
+			CGLTF_WRITE_TEXTURE_INFO("specularGlossinessTexture", params.specular_glossiness_texture);
+			if (cgltf_check_floatarray(params.diffuse_factor, 4, 1.0f))
+			{
+				cgltf_write_floatarrayprop(context, "dffuseFactor", params.diffuse_factor, 4);
+			}
+			if (cgltf_check_floatarray(params.specular_factor, 3, 1.0f))
+			{
+				cgltf_write_floatarrayprop(context, "specularFactor", params.specular_factor, 3);
+			}
+			cgltf_write_floatprop(context, "glossinessFactor", params.glossiness_factor, 1.0f);
+			cgltf_write_line(context, "}");
 		}
-		if (cgltf_check_floatarray(params.specular_factor, 3, 1.0f))
+		if (material->unlit)
 		{
-			cgltf_write_floatarrayprop(context, "specularFactor", params.specular_factor, 3);
+			cgltf_write_line(context, "\"KHR_materials_unlit\": {}");
 		}
-		cgltf_write_floatprop(context, "glossinessFactor", params.glossiness_factor, 1.0f);
-		cgltf_write_line(context, "}");
 		cgltf_write_line(context, "}");
 	}
 
@@ -445,7 +456,7 @@ static void cgltf_write_texture(cgltf_write_context* context, const cgltf_textur
 static void cgltf_write_skin(cgltf_write_context* context, const cgltf_skin* skin)
 {
 	cgltf_write_line(context, "{");
-    CGLTF_WRITE_IDXPROP("skeleton", skin->skeleton, context->data->nodes);
+	CGLTF_WRITE_IDXPROP("skeleton", skin->skeleton, context->data->nodes);
 	CGLTF_WRITE_IDXPROP("inverseBindMatrices", skin->inverse_bind_matrices, context->data->accessors);
 	CGLTF_WRITE_IDXARRPROP("joints", skin->joints_count, skin->joints, context->data->nodes);
 	cgltf_write_strprop(context, "name", skin->name);
@@ -464,6 +475,8 @@ static const char* cgltf_write_str_path_type(cgltf_animation_path_type path_type
 		return "scale";
 	case cgltf_animation_path_type_weights:
 		return "weights";
+	case cgltf_animation_path_type_invalid:
+		break;
 	}
 	return "invalid";
 }
@@ -472,11 +485,11 @@ static const char* cgltf_write_str_interpolation_type(cgltf_interpolation_type i
 {
 	switch (interpolation_type)
 	{
-	case cgltf_interpolation_type_linear: 
+	case cgltf_interpolation_type_linear:
 		return "LINEAR";
-	case cgltf_interpolation_type_step: 
+	case cgltf_interpolation_type_step:
 		return "STEP";
-	case cgltf_interpolation_type_cubic_spline: 
+	case cgltf_interpolation_type_cubic_spline:
 		return "CUBICSPLINE";
 	}
 	return "invalid";
