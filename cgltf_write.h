@@ -808,7 +808,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 /* cgltf is distributed under MIT license:
  *
- * Copyright (c) 2018 Johannes Kuhlmann
+ * Copyright (c) 2019 Philip Rideout
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
