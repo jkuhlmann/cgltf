@@ -185,10 +185,13 @@ static void cgltf_write_floatprop(cgltf_write_context* context, const char* labe
 		CGLTF_SPRINTF("%g", val);
 		context->needs_comma = 1;
 
-		char *decimal_comma = strchr(context->cursor - context->tmp, ',');
-		if (decimal_comma)
+		if (context->cursor)
 		{
-			*decimal_comma = '.';
+			char *decimal_comma = strchr(context->cursor - context->tmp, ',');
+			if (decimal_comma)
+			{
+				*decimal_comma = '.';
+			}
 		}
 	}
 }
