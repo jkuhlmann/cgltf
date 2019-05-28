@@ -184,8 +184,18 @@ static void cgltf_write_floatprop(cgltf_write_context* context, const char* labe
 	if (val != def)
 	{
 		cgltf_write_indent(context);
-		CGLTF_SPRINTF("\"%s\": %g", label, val);
+		CGLTF_SPRINTF("\"%s\": ", label);
+		CGLTF_SPRINTF("%g", val);
 		context->needs_comma = 1;
+
+		if (context->cursor)
+		{
+			char *decimal_comma = strchr(context->cursor - context->tmp, ',');
+			if (decimal_comma)
+			{
+				*decimal_comma = '.';
+			}
+		}
 	}
 }
 
