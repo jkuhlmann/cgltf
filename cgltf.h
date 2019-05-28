@@ -608,11 +608,13 @@ static const uint32_t GlbMagicBinChunk = 0x004E4942;
 
 static void* cgltf_default_alloc(void* user, cgltf_size size)
 {
+	(void)user;
 	return malloc(size);
 }
 
 static void cgltf_default_free(void* user, void* ptr)
 {
+	(void)user;
 	free(ptr);
 }
 
@@ -1659,6 +1661,7 @@ static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* toke
 
 static int cgltf_parse_json_array(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, size_t element_size, void** out_array, cgltf_size* out_size)
 {
+	(void)json_chunk;
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 	if (*out_array)
 	{
@@ -2420,6 +2423,7 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 
 static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_sampler* out_sampler)
 {
+	(void)options;
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 	out_sampler->wrap_s = 10497;
@@ -3478,6 +3482,7 @@ static int cgltf_parse_json_scenes(cgltf_options* options, jsmntok_t const* toke
 
 static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_sampler* out_sampler)
 {
+	(void)options;
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 	int size = tokens[i].size;
@@ -3532,6 +3537,7 @@ static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t 
 
 static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_channel* out_channel)
 {
+	(void)options;
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 	int size = tokens[i].size;
@@ -3932,7 +3938,7 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 
 cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk, cgltf_size size, cgltf_data** out_data)
 {
-	jsmn_parser parser = { 0 };
+	jsmn_parser parser = { 0, 0, 0 };
 
 	if (options->json_token_count == 0)
 	{
