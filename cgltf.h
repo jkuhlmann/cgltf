@@ -527,6 +527,9 @@ typedef struct cgltf_data
 
 	cgltf_extras extras;
 
+	const char* json;
+	cgltf_size json_size;
+
 	const void* bin;
 	cgltf_size bin_size;
 
@@ -563,6 +566,8 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 
 cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size);
 cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size index);
+
+cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size dest_size);
 
 #ifdef __cplusplus
 }
@@ -1209,6 +1214,18 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		}
 	}
 
+	return cgltf_result_success;
+}
+
+cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size dest_size)
+{
+	cgltf_size json_size = extras->end_offset - extras->start_offset;
+	if (dest_size + 1 < json_size)
+	{
+		return cgltf_result_data_too_short;
+	}
+	strncpy(dest, data->json + extras->start_offset, json_size);
+	dest[json_size] = 0;
 	return cgltf_result_success;
 }
 
@@ -3541,9 +3558,6 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 	int size = tokens[i].size;
 	++i;
 
-	out_scene->extras.start_offset = 0;
-	out_scene->extras.end_offset = 0;
-
 	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
@@ -4139,6 +4153,9 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		cgltf_free(data);
 		return cgltf_result_invalid_gltf;
 	}
+
+	data->json = (const char*)json_chunk;
+	data->json_size = size;
 
 	*out_data = data;
 
