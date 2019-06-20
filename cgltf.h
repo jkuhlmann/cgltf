@@ -65,6 +65,14 @@
  *
  * `cgltf_accessor_read_index` is similar to its floating-point counterpart, but it returns size_t
  * and only works with single-component data types.
+ *
+ * `cgltf_result cgltf_copy_extras_json(const cgltf_data*, const cgltf_extras*,
+ * char* dest, cgltf_size dest_size)` allows to retrieve the "extras" data that
+ * can be attached to many glTF objects (which can be arbitrary JSON data). The
+ * `cgltf_extras` struct stores the offsets of the start and end of the extras JSON data
+ * as it appears in the complete glTF JSON data. This function copies the extras data
+ * into the provided buffer. You can then parse this data using your own JSON parser
+ * or, if you've included the cgltf implementation using the integrated JSMN JSON parser.
  */
 #ifndef CGLTF_H_INCLUDED__
 #define CGLTF_H_INCLUDED__
