@@ -361,7 +361,7 @@ static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_prim
 		for (cgltf_size i = 0; i < prim->targets_count; ++i)
 		{
 			cgltf_write_line(context, "{");
-			for (cgltf_size j = 0; j < prim->attributes_count; ++j)
+			for (cgltf_size j = 0; j < prim->targets[i].attributes_count; ++j)
 			{
 				const cgltf_attribute* attr = prim->targets[i].attributes + j;
 				CGLTF_WRITE_IDXPROP(attr->name, attr->data, context->data->accessors);
