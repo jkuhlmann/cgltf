@@ -610,6 +610,9 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 #include <stdio.h>  /* For fopen */
 #include <limits.h> /* For UINT_MAX etc */
 
+/* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
+#define JSMN_PARENT_LINKS
+
 /*
  * -- jsmn.h start --
  * Source: https://github.com/zserge/jsmn
