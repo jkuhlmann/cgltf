@@ -1860,6 +1860,7 @@ static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t con
 
 static int cgltf_parse_json_extras(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extras* out_extras)
 {
+	(void)json_chunk;
 	out_extras->start_offset = tokens[i].start;
 	out_extras->end_offset = tokens[i].end;
 	i = cgltf_skip_json(tokens, i);
