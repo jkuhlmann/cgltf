@@ -1395,7 +1395,18 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory_free(data->memory_user_data, data->animations);
 
+	for (cgltf_size i = 0; i < data->extensions_used_count; ++i)
+	{
+		data->memory_free(data->memory_user_data, data->extensions_used[i]);
+	}
+
 	data->memory_free(data->memory_user_data, data->extensions_used);
+
+	for (cgltf_size i = 0; i < data->extensions_required_count; ++i)
+	{
+		data->memory_free(data->memory_user_data, data->extensions_required[i]);
+	}
+
 	data->memory_free(data->memory_user_data, data->extensions_required);
 
 	data->memory_free(data->memory_user_data, data->file_data);
