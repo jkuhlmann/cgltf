@@ -41,7 +41,7 @@ For buffer data, you can alternatively call `cgltf_load_buffers`, which will use
 **For more in-depth documentation and a description of the public interface refer to the top of the `cgltf.h` file.**
 
 ## Usage: Writing
-When writing out glTF data, you need a valid `cgltf_data` structure that represents a valid glTF document. You can construct such a structure yourself or load it using the loader functions described above. The writer functions do not deallocate any memory. So, you either have to do it manually or call `cgltf_free()` if you got the data by loading it from a glTF document.
+When writing glTF data, you need a valid `cgltf_data` structure that represents a valid glTF document. You can construct such a structure yourself or load it using the loader functions described above. The writer functions do not deallocate any memory. So, you either have to do it manually or call `cgltf_free()` if you got the data by loading it from a glTF document.
 
 Writing to file:
 ```c
@@ -66,14 +66,14 @@ cgltf_size size = cgltf_write(&options, NULL, 0, data);
 
 char* buf = malloc(size);
 
-cgltf_result result = cgltf_write(&options, buf, size, data);
-if (result != cgltf_result_success)
+cgltf_size written = cgltf_write(&options, buf, size, data);
+if (written != size)
 {
 	/* TODO handle error */
 }
 ```
 
-Note that cgltf does not write the contents of extra files such as buffers o or images. You'll need to write out this data yourself.
+Note that cgltf does not write the contents of extra files such as buffers or images. You'll need to write this data yourself.
 
 Writing does not yet support "extras" data.
 
