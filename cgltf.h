@@ -536,14 +536,14 @@ typedef struct cgltf_data
 
 	cgltf_extras extras;
 
-	const char* json;
-	cgltf_size json_size;
-
 	char** extensions_used;
 	cgltf_size extensions_used_count;
 
 	char** extensions_required;
 	cgltf_size extensions_required_count;
+
+	const char* json;
+	cgltf_size json_size;
 
 	const void* bin;
 	cgltf_size bin_size;
@@ -1394,6 +1394,9 @@ void cgltf_free(cgltf_data* data)
 	}
 
 	data->memory_free(data->memory_user_data, data->animations);
+
+	data->memory_free(data->memory_user_data, data->extensions_used);
+	data->memory_free(data->memory_user_data, data->extensions_required);
 
 	data->memory_free(data->memory_user_data, data->file_data);
 
