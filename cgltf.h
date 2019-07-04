@@ -1779,6 +1779,10 @@ static int cgltf_parse_json_string_array(cgltf_options* options, jsmntok_t const
 {
     CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
     i = cgltf_parse_json_array(options, tokens, i, json_chunk, sizeof(char*), (void**)out_array, out_size);
+    if (i < 0)
+    {
+        return i;
+    }
 
     for (cgltf_size j = 0; j < *out_size; ++j)
     {
