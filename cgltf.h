@@ -613,6 +613,9 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 /* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
 #define JSMN_PARENT_LINKS
 
+/* JSMN_STRICT is necessary to reject invalid JSON documents */
+#define JSMN_STRICT
+
 /*
  * -- jsmn.h start --
  * Source: https://github.com/zserge/jsmn
@@ -1039,7 +1042,7 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 				return cgltf_result_unknown_format;
 			}
 		}
-		else if (strstr(uri, "://") == NULL)
+		else if (strstr(uri, "://") == NULL && gltf_path)
 		{
 			cgltf_result res = cgltf_load_buffer_file(options, data->buffers[i].size, uri, gltf_path, &data->buffers[i].data);
 
