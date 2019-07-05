@@ -1677,6 +1677,7 @@ static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 				return i;
 			}
 		}
+		return i;
 	}
 	else if (tokens[i].type == JSMN_OBJECT)
 	{
@@ -1692,13 +1693,16 @@ static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 				return i;
 			}
 		}
+		return i;
 	}
-	else if (tokens[i].type == JSMN_PRIMITIVE
-		 || tokens[i].type == JSMN_STRING)
+	else if (tokens[i].type == JSMN_PRIMITIVE || tokens[i].type == JSMN_STRING)
 	{
 		return i + 1;
 	}
-	return i;
+	else
+	{
+		return -1;
+	}
 }
 
 static void cgltf_fill_float_array(float* out_array, int size, float value)
@@ -2376,6 +2380,8 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 
 			for (int k = 0; k < extensions_size; ++k)
 			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_texture_transform") == 0)
 				{
 					out_texture_view->has_transform = 1;
@@ -2384,6 +2390,11 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 				else
 				{
 					i = cgltf_skip_json(tokens, i+1);
+				}
+
+				if (i < 0)
+				{
+					return i;
 				}
 			}
 		}
@@ -2471,18 +2482,10 @@ static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "diffuseFactor") == 0)
 		{
 			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_pbr->diffuse_factor, 4);
-			if (i < 0)
-			{
-				return i;
-			}
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "specularFactor") == 0)
 		{
 			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_pbr->specular_factor, 3);
-			if (i < 0)
-			{
-				return i;
-			}
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "glossinessFactor") == 0)
 		{
@@ -2493,18 +2496,10 @@ static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "diffuseTexture") == 0)
 		{
 			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->diffuse_texture);
-			if (i < 0)
-			{
-				return i;
-			}
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "specularGlossinessTexture") == 0)
 		{
 			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->specular_glossiness_texture);
-			if (i < 0)
-			{
-				return i;
-			}
 		}
 		else
 		{
@@ -2515,7 +2510,6 @@ static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int
 		{
 			return i;
 		}
-
 	}
 
 	return i;
@@ -4171,7 +4165,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		options->json_token_count = token_count;
 	}
 
-	jsmntok_t* tokens = (jsmntok_t*)options->memory_alloc(options->memory_user_data, sizeof(jsmntok_t) * options->json_token_count);
+	jsmntok_t* tokens = (jsmntok_t*)options->memory_alloc(options->memory_user_data, sizeof(jsmntok_t) * (options->json_token_count + 1));
 
 	if (!tokens)
 	{
@@ -4187,6 +4181,10 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		options->memory_free(options->memory_user_data, tokens);
 		return cgltf_result_invalid_json;
 	}
+
+	// this makes sure that we always have an UNDEFINED token at the end of the stream
+	// for invalid JSON inputs this makes sure we don't perform out of bound reads of token data
+	tokens[token_count].type = JSMN_UNDEFINED;
 
 	cgltf_data* data = (cgltf_data*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_data));
 
