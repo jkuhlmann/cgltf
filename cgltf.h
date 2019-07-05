@@ -1665,44 +1665,32 @@ static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_c
 
 static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 {
-	if (tokens[i].type == JSMN_ARRAY)
+	int end = i + 1;
+
+	while (i < end)
 	{
-		int size = tokens[i].size;
-		++i;
-		for (int j = 0; j < size; ++j)
+		switch (tokens[i].type)
 		{
-			i = cgltf_skip_json(tokens, i);
-			if (i < 0)
-			{
-				return i;
-			}
+		case JSMN_OBJECT:
+			end += tokens[i].size * 2;
+			break;
+
+		case JSMN_ARRAY:
+			end += tokens[i].size;
+			break;
+
+		case JSMN_PRIMITIVE:
+		case JSMN_STRING:
+			break;
+
+		default:
+			return -1;
 		}
-		return i;
+
+		i++;
 	}
-	else if (tokens[i].type == JSMN_OBJECT)
-	{
-		int size = tokens[i].size;
-		++i;
-		for (int j = 0; j < size; ++j)
-		{
-			CGLTF_CHECK_KEY(tokens[i]);
-			++i;
-			i = cgltf_skip_json(tokens, i);
-			if (i < 0)
-			{
-				return i;
-			}
-		}
-		return i;
-	}
-	else if (tokens[i].type == JSMN_PRIMITIVE || tokens[i].type == JSMN_STRING)
-	{
-		return i + 1;
-	}
-	else
-	{
-		return -1;
-	}
+
+	return i;
 }
 
 static void cgltf_fill_float_array(float* out_array, int size, float value)
