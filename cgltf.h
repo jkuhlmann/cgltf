@@ -895,7 +895,7 @@ static void cgltf_combine_paths(char* path, const char* base, const char* uri)
 	}
 	else
 	{
-		strcpy(path, base);
+		strcpy(path, uri);
 	}
 }
 
