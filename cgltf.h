@@ -3991,6 +3991,8 @@ static cgltf_size cgltf_component_size(cgltf_component_type component_type) {
 static cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type)
 {
 	cgltf_size component_size = cgltf_component_size(component_type);
+	// Need to match alignments for corner cases
+	// https://github.com/jkuhlmann/cgltf/issues/47
 	if (type == cgltf_type_mat2 && component_size == 1)
 	{
 		return 8 * component_size;
