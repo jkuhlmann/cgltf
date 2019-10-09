@@ -36,6 +36,13 @@ int main(int argc, char** argv)
 		const cgltf_accessor* blob = data->accessors + blob_index;
 		if (blob->is_sparse)
 		{
+			cgltf_size nfloats = cgltf_num_components(blob->type) * blob->count;
+			cgltf_float* dense = (cgltf_float*) malloc(nfloats * sizeof(cgltf_float));
+			if (cgltf_accessor_unpack_floats(blob, dense, nfloats) < nfloats) {
+				printf("Unable to completely unpack a sparse accessor.\n");
+				return -1;
+			}
+			free(dense);
 			continue;
 		}
 		if (blob->has_max && blob->has_min)
