@@ -99,7 +99,7 @@ typedef struct {
 #define CGLTF_WRITE_IDXARRPROP(label, dim, vals, start) if (vals) { \
 		cgltf_write_indent(context); \
 		CGLTF_SPRINTF("\"%s\": [", label); \
-		for (int i = 0; i < dim; ++i) { \
+		for (int i = 0; i < (int)(dim); ++i) { \
 			int idx = (int) (vals[i] - start); \
 			if (i != 0) CGLTF_SPRINTF(","); \
 			CGLTF_SPRINTF(" %d", idx); \
@@ -787,6 +787,7 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 
 cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data)
 {
+	(void)options;
 	cgltf_write_context ctx;
 	ctx.buffer = buffer;
 	ctx.buffer_size = size;
