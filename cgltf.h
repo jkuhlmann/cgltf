@@ -1727,7 +1727,7 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	char tmp[128];
-	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : sizeof(tmp) - 1;
+	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return atoi(tmp);
@@ -1737,7 +1737,7 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	char tmp[128];
-	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : sizeof(tmp) - 1;
+	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return (cgltf_float)atof(tmp);
@@ -1865,7 +1865,7 @@ static int cgltf_parse_json_string_array(cgltf_options* options, jsmntok_t const
 static void cgltf_parse_attribute_type(const char* name, cgltf_attribute_type* out_type, int* out_index)
 {
 	const char* us = strchr(name, '_');
-	size_t len = us ? us - name : strlen(name);
+	size_t len = us ? (size_t)(us - name) : strlen(name);
 
 	if (len == 8 && strncmp(name, "POSITION", 8) == 0)
 	{
