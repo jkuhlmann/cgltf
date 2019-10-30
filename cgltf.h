@@ -420,7 +420,7 @@ typedef struct cgltf_camera {
 	union {
 		cgltf_camera_perspective perspective;
 		cgltf_camera_orthographic orthographic;
-	};
+	} data;
 	cgltf_extras extras;
 } cgltf_camera;
 
@@ -3284,30 +3284,30 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "aspectRatio") == 0)
 				{
 					++i;
-					out_camera->perspective.aspect_ratio = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.perspective.aspect_ratio = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "yfov") == 0)
 				{
 					++i;
-					out_camera->perspective.yfov = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.perspective.yfov = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "zfar") == 0)
 				{
 					++i;
-					out_camera->perspective.zfar = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.perspective.zfar = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "znear") == 0)
 				{
 					++i;
-					out_camera->perspective.znear = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.perspective.znear = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 				{
-					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_camera->perspective.extras);
+					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_camera->data.perspective.extras);
 				}
 				else
 				{
@@ -3338,30 +3338,30 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "xmag") == 0)
 				{
 					++i;
-					out_camera->orthographic.xmag = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.orthographic.xmag = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "ymag") == 0)
 				{
 					++i;
-					out_camera->orthographic.ymag = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.orthographic.ymag = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "zfar") == 0)
 				{
 					++i;
-					out_camera->orthographic.zfar = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.orthographic.zfar = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "znear") == 0)
 				{
 					++i;
-					out_camera->orthographic.znear = cgltf_json_to_float(tokens + i, json_chunk);
+					out_camera->data.orthographic.znear = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 				{
-					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_camera->orthographic.extras);
+					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_camera->data.orthographic.extras);
 				}
 				else
 				{
