@@ -83,8 +83,8 @@ typedef struct {
 	uint32_t extension_flags;
 } cgltf_write_context;
 
-#define CGLTF_SPRINTF(fmt, ...) { \
-		context->tmp = snprintf ( context->cursor, context->remaining, fmt, ## __VA_ARGS__ ); \
+#define CGLTF_SPRINTF(...) { \
+		context->tmp = snprintf ( context->cursor, context->remaining, __VA_ARGS__ ); \
 		context->chars_written += context->tmp; \
 		if (context->cursor) { \
 			context->cursor += context->tmp; \
@@ -99,7 +99,7 @@ typedef struct {
 #define CGLTF_WRITE_IDXARRPROP(label, dim, vals, start) if (vals) { \
 		cgltf_write_indent(context); \
 		CGLTF_SPRINTF("\"%s\": [", label); \
-		for (int i = 0; i < dim; ++i) { \
+		for (int i = 0; i < (int)(dim); ++i) { \
 			int idx = (int) (vals[i] - start); \
 			if (i != 0) CGLTF_SPRINTF(","); \
 			CGLTF_SPRINTF(" %d", idx); \
@@ -722,19 +722,19 @@ static void cgltf_write_camera(cgltf_write_context* context, const cgltf_camera*
 	if (camera->type == cgltf_camera_type_orthographic)
 	{
 		cgltf_write_line(context, "\"orthographic\": {");
-		cgltf_write_floatprop(context, "xmag", camera->orthographic.xmag, -1.0f);
-		cgltf_write_floatprop(context, "ymag", camera->orthographic.ymag, -1.0f);
-		cgltf_write_floatprop(context, "zfar", camera->orthographic.zfar, -1.0f);
-		cgltf_write_floatprop(context, "znear", camera->orthographic.znear, -1.0f);
+		cgltf_write_floatprop(context, "xmag", camera->data.orthographic.xmag, -1.0f);
+		cgltf_write_floatprop(context, "ymag", camera->data.orthographic.ymag, -1.0f);
+		cgltf_write_floatprop(context, "zfar", camera->data.orthographic.zfar, -1.0f);
+		cgltf_write_floatprop(context, "znear", camera->data.orthographic.znear, -1.0f);
 		cgltf_write_line(context, "}");
 	}
 	else if (camera->type == cgltf_camera_type_perspective)
 	{
 		cgltf_write_line(context, "\"perspective\": {");
-		cgltf_write_floatprop(context, "aspectRatio", camera->perspective.aspect_ratio, -1.0f);
-		cgltf_write_floatprop(context, "yfov", camera->perspective.yfov, -1.0f);
-		cgltf_write_floatprop(context, "zfar", camera->perspective.zfar, -1.0f);
-		cgltf_write_floatprop(context, "znear", camera->perspective.znear, -1.0f);
+		cgltf_write_floatprop(context, "aspectRatio", camera->data.perspective.aspect_ratio, -1.0f);
+		cgltf_write_floatprop(context, "yfov", camera->data.perspective.yfov, -1.0f);
+		cgltf_write_floatprop(context, "zfar", camera->data.perspective.zfar, -1.0f);
+		cgltf_write_floatprop(context, "znear", camera->data.perspective.znear, -1.0f);
 		cgltf_write_line(context, "}");
 	}
 	cgltf_write_line(context, "}");
@@ -787,6 +787,7 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 
 cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data)
 {
+	(void)options;
 	cgltf_write_context ctx;
 	ctx.buffer = buffer;
 	ctx.buffer_size = size;
