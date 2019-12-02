@@ -1645,6 +1645,10 @@ cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size 
 		memset(out, 0, element_size * sizeof(cgltf_float));
 		return 1;
 	}
+	if (accessor->buffer_view->buffer->data == NULL)
+	{
+		return 0;
+	}
 	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
 	const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
 	element += offset + accessor->stride * index;
@@ -1669,13 +1673,22 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 	dense.is_sparse = 0;
 	for (cgltf_size index = 0; index < element_count; index++, dest += floats_per_element)
 	{
-		cgltf_accessor_read_float(&dense, index, dest, floats_per_element);
+		if (!cgltf_accessor_read_float(&dense, index, dest, floats_per_element))
+		{
+			return 0;
+		}
 	}
 
 	// Second pass: write out each element in the sparse accessor.
 	if (accessor->is_sparse)
 	{
 		const cgltf_accessor_sparse* sparse = &dense.sparse;
+
+		if (sparse->indices_buffer_view->buffer->data == NULL || sparse->values_buffer_view->buffer->data == NULL)
+		{
+			return 0;
+		}
+
 		const uint8_t* index_data = (const uint8_t*) sparse->indices_buffer_view->buffer->data;
 		index_data += sparse->indices_byte_offset + sparse->indices_buffer_view->offset;
 		cgltf_size index_stride = cgltf_component_size(sparse->indices_component_type);
@@ -1685,7 +1698,12 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 		{
 			size_t writer_index = cgltf_component_read_index(index_data, sparse->indices_component_type);
 			float* writer_head = out + writer_index * floats_per_element;
-			cgltf_element_read_float(reader_head, dense.type, dense.component_type, dense.normalized, writer_head, floats_per_element);
+
+			if (!cgltf_element_read_float(reader_head, dense.type, dense.component_type, dense.normalized, writer_head, floats_per_element))
+			{
+				return 0;
+			}
+
 			reader_head += dense.stride;
 		}
 	}
@@ -1695,15 +1713,23 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 
 cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size index)
 {
-	if (accessor->buffer_view)
+	if (accessor->is_sparse)
 	{
-		cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
-		const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
-		element += offset + accessor->stride * index;
-		return cgltf_component_read_index(element, accessor->component_type);
+		return 0; // This is an error case, but we can't communicate the error with existing interface.
+	}
+	if (accessor->buffer_view == NULL)
+	{
+		return 0;
+	}
+	if (accessor->buffer_view->buffer->data == NULL)
+	{
+		return 0; // This is an error case, but we can't communicate the error with existing interface.
 	}
 
-	return 0;
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	const uint8_t* element = (const uint8_t*) accessor->buffer_view->buffer->data;
+	element += offset + accessor->stride * index;
+	return cgltf_component_read_index(element, accessor->component_type);
 }
 
 #define CGLTF_ERROR_JSON -1
