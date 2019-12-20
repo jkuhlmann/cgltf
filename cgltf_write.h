@@ -495,7 +495,7 @@ static void cgltf_write_image(cgltf_write_context* context, const cgltf_image* i
 	cgltf_write_strprop(context, "name", image->name);
 	cgltf_write_strprop(context, "uri", image->uri);
 	CGLTF_WRITE_IDXPROP("bufferView", image->buffer_view, context->data->buffer_views);
-	cgltf_write_strprop(context, "mime_type", image->mime_type);
+	cgltf_write_strprop(context, "mimeType", image->mime_type);
 	cgltf_write_line(context, "}");
 }
 
