@@ -71,11 +71,11 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 typedef struct {
 	char* buffer;
-	size_t buffer_size;
-	size_t remaining;
+	cgltf_size buffer_size;
+	cgltf_size remaining;
 	char* cursor;
-	size_t tmp;
-	size_t chars_written;
+	cgltf_size tmp;
+	cgltf_size chars_written;
 	const cgltf_data* data;
 	int depth;
 	const char* indent;
@@ -767,9 +767,9 @@ static void cgltf_write_light(cgltf_write_context* context, const cgltf_light* l
 
 cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data)
 {
-	size_t expected = cgltf_write(options, NULL, 0, data);
+	cgltf_size expected = cgltf_write(options, NULL, 0, data);
 	char* buffer = (char*) malloc(expected);
-	size_t actual = cgltf_write(options, buffer, expected, data);
+	cgltf_size actual = cgltf_write(options, buffer, expected, data);
 	if (expected != actual) {
 		fprintf(stderr, "Error: expected %zu bytes but wrote %zu bytes.\n", expected, actual);
 	}
