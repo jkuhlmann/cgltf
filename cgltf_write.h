@@ -886,10 +886,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 		cgltf_write_line(context, "]");
 	}
 
-	if (data->scene)
-	{
-		cgltf_write_intprop(context, "scene", data->scene - data->scenes, -1);
-	}
+	CGLTF_WRITE_IDXPROP("scene", data->scene, data->scenes);
 
 	if (data->scenes_count > 0)
 	{
