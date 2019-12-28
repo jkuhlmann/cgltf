@@ -392,7 +392,7 @@ static void cgltf_write_mesh(cgltf_write_context* context, const cgltf_mesh* mes
 
 	if (mesh->weights_count > 0)
 	{
-		cgltf_write_floatarrayprop(context, "weights", mesh->weights, mesh->weights_count);
+		cgltf_write_floatarrayprop(context, "weights", mesh->weights, (int)mesh->weights_count);
 	}
 
 	cgltf_write_line(context, "}");
@@ -402,9 +402,9 @@ static void cgltf_write_buffer_view(cgltf_write_context* context, const cgltf_bu
 {
 	cgltf_write_line(context, "{");
 	CGLTF_WRITE_IDXPROP("buffer", view->buffer, context->data->buffers);
-	cgltf_write_intprop(context, "byteLength", view->size, -1);
-	cgltf_write_intprop(context, "byteOffset", view->offset, 0);
-	cgltf_write_intprop(context, "byteStride", view->stride, 0);
+	cgltf_write_intprop(context, "byteLength", (int)view->size, -1);
+	cgltf_write_intprop(context, "byteOffset", (int)view->offset, 0);
+	cgltf_write_intprop(context, "byteStride", (int)view->stride, 0);
 	// NOTE: We skip writing "target" because the spec says its usage can be inferred.
 	cgltf_write_line(context, "}");
 }
@@ -414,7 +414,7 @@ static void cgltf_write_buffer(cgltf_write_context* context, const cgltf_buffer*
 {
 	cgltf_write_line(context, "{");
 	cgltf_write_strprop(context, "uri", buffer->uri);
-	cgltf_write_intprop(context, "byteLength", buffer->size, -1);
+	cgltf_write_intprop(context, "byteLength", (int)buffer->size, -1);
 	cgltf_write_line(context, "}");
 }
 
@@ -655,7 +655,7 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 
 	if (node->weights_count > 0)
 	{
-		cgltf_write_floatarrayprop(context, "weights", node->weights, node->weights_count);
+		cgltf_write_floatarrayprop(context, "weights", node->weights, (int)node->weights_count);
 	}
 
 	if (node->camera)
@@ -682,8 +682,8 @@ static void cgltf_write_accessor(cgltf_write_context* context, const cgltf_acces
 	cgltf_write_strprop(context, "type", cgltf_str_from_type(accessor->type));
 	int dim = cgltf_dim_from_type(accessor->type);
 	cgltf_write_boolprop_optional(context, "normalized", accessor->normalized, false);
-	cgltf_write_intprop(context, "byteOffset", accessor->offset, 0);
-	cgltf_write_intprop(context, "count", accessor->count, -1);
+	cgltf_write_intprop(context, "byteOffset", (int)accessor->offset, 0);
+	cgltf_write_intprop(context, "count", (int)accessor->count, -1);
 	if (accessor->has_min)
 	{
 		cgltf_write_floatarrayprop(context, "min", accessor->min, dim);
@@ -695,14 +695,14 @@ static void cgltf_write_accessor(cgltf_write_context* context, const cgltf_acces
 	if (accessor->is_sparse)
 	{
 		cgltf_write_line(context, "\"sparse\": {");
-		cgltf_write_intprop(context, "count", accessor->sparse.count, 0);
+		cgltf_write_intprop(context, "count", (int)accessor->sparse.count, 0);
 		cgltf_write_line(context, "\"indices\": {");
-		cgltf_write_intprop(context, "byteOffset", accessor->sparse.indices_byte_offset, 0);
+		cgltf_write_intprop(context, "byteOffset", (int)accessor->sparse.indices_byte_offset, 0);
 		CGLTF_WRITE_IDXPROP("bufferView", accessor->sparse.indices_buffer_view, context->data->buffer_views);
 		cgltf_write_intprop(context, "componentType", cgltf_int_from_component_type(accessor->sparse.indices_component_type), 0);
 		cgltf_write_line(context, "}");
 		cgltf_write_line(context, "\"values\": {");
-		cgltf_write_intprop(context, "byteOffset", accessor->sparse.values_byte_offset, 0);
+		cgltf_write_intprop(context, "byteOffset", (int)accessor->sparse.values_byte_offset, 0);
 		CGLTF_WRITE_IDXPROP("bufferView", accessor->sparse.values_buffer_view, context->data->buffer_views);
 		cgltf_write_line(context, "}");
 		cgltf_write_line(context, "}");
