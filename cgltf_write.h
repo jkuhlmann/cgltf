@@ -160,7 +160,7 @@ static void cgltf_write_line(cgltf_write_context* context, const char* line)
 	}
 	cgltf_write_indent(context);
 	CGLTF_SPRINTF("%s", line);
-	size_t last = strlen(line) - 1;
+	cgltf_size last = (cgltf_size)(strlen(line) - 1);
 	if (line[0] == ']' || line[0] == '}')
 	{
 		context->needs_comma = 1;
