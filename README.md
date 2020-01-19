@@ -6,6 +6,7 @@
 ## Usage: Loading
 Loading from file:
 ```c
+#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 
 cgltf_options options = {0};
@@ -20,6 +21,7 @@ if (result == cgltf_result_success)
 
 Loading from memory:
 ```c
+#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 
 void* buf; /* Pointer to glb or gltf file data */
@@ -45,6 +47,8 @@ When writing glTF data, you need a valid `cgltf_data` structure that represents 
 
 Writing to file:
 ```c
+#define CGLTF_IMPLEMENTATION
+#define CGLTF_WRITE_IMPLEMENTATION
 #include "cgltf_write.h"
 
 cgltf_options options = {0};
@@ -58,6 +62,8 @@ if (result != cgltf_result_success)
 
 Writing to memory:
 ```c
+#define CGLTF_IMPLEMENTATION
+#define CGLTF_WRITE_IMPLEMENTATION
 #include "cgltf_write.h"
 cgltf_options options = {0};
 cgltf_data* data = /* TODO must be valid data */;
