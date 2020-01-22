@@ -621,9 +621,12 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 
 #include <stdint.h> /* For uint8_t, uint32_t */
 #include <string.h> /* For strncpy */
-#include <stdlib.h> /* For malloc, free */
 #include <stdio.h>  /* For fopen */
 #include <limits.h> /* For UINT_MAX etc */
+
+#if !defined(CGLTF_MALLOC) || !defined(CGLTF_FREE) || !defined(CGLTF_ATOI) || !defined(CGLTF_ATOF)
+#include <stdlib.h> /* For malloc, free, atoi, atof */
+#endif
 
 /* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
 #define JSMN_PARENT_LINKS
@@ -679,16 +682,29 @@ static const uint32_t GlbMagic = 0x46546C67;
 static const uint32_t GlbMagicJsonChunk = 0x4E4F534A;
 static const uint32_t GlbMagicBinChunk = 0x004E4942;
 
+#ifndef CGLTF_MALLOC
+#define CGLTF_MALLOC(size) malloc(size)
+#endif
+#ifndef CGLTF_FREE
+#define CGLTF_FREE(ptr) free(ptr)
+#endif
+#ifndef CGLTF_ATOI
+#define CGLTF_ATOI(str) atoi(str)
+#endif
+#ifndef CGLTF_ATOF
+#define CGLTF_ATOF(str) atof(str)
+#endif
+
 static void* cgltf_default_alloc(void* user, cgltf_size size)
 {
 	(void)user;
-	return malloc(size);
+	return CGLTF_MALLOC(size);
 }
 
 static void cgltf_default_free(void* user, void* ptr)
 {
 	(void)user;
-	free(ptr);
+	CGLTF_FREE(ptr);
 }
 
 static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_size count)
@@ -1818,7 +1834,7 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
-	return atoi(tmp);
+	return CGLTF_ATOI(tmp);
 }
 
 static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
@@ -1828,7 +1844,7 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
-	return (cgltf_float)atof(tmp);
+	return (cgltf_float)CGLTF_ATOF(tmp);
 }
 
 static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk)
@@ -1993,7 +2009,7 @@ static void cgltf_parse_attribute_type(const char* name, cgltf_attribute_type* o
 
 	if (us && *out_type != cgltf_attribute_type_invalid)
 	{
-		*out_index = atoi(us + 1);
+		*out_index = CGLTF_ATOI(us + 1);
 	}
 }
 
@@ -4140,7 +4156,7 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 		}
 	}
 
-	if (out_asset->version && atof(out_asset->version) < 2)
+	if (out_asset->version && CGLTF_ATOF(out_asset->version) < 2)
 	{
 		return CGLTF_ERROR_LEGACY;
 	}
