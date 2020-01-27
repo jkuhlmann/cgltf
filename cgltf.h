@@ -993,7 +993,7 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 
 	void* file_data = NULL;
 	cgltf_result result = file_read(options, path, &size, &file_data);
-	if (result >= cgltf_result_success)
+	if (result != cgltf_result_success)
 	{
 		return result;
 	}
