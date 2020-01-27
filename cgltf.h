@@ -105,15 +105,6 @@ typedef enum cgltf_file_type
 	cgltf_file_type_glb,
 } cgltf_file_type;
 
-typedef struct cgltf_options
-{
-	cgltf_file_type type; /* invalid == auto detect */
-	cgltf_size json_token_count; /* 0 == auto */
-	void* (*memory_alloc)(void* user, cgltf_size size);
-	void (*memory_free) (void* user, void* ptr);
-	void* memory_user_data;
-} cgltf_options;
-
 typedef enum cgltf_result
 {
 	cgltf_result_success,
@@ -127,6 +118,18 @@ typedef enum cgltf_result
 	cgltf_result_out_of_memory,
 	cgltf_result_legacy_gltf,
 } cgltf_result;
+
+typedef struct cgltf_options
+{
+	cgltf_file_type type; /* invalid == auto detect */
+	cgltf_size json_token_count; /* 0 == auto */
+	void* (*memory_alloc)(void* user, cgltf_size size);
+	void (*memory_free) (void* user, void* ptr);
+	void* memory_user_data;
+	cgltf_result (*file_read)(const struct cgltf_options* options, const char* path, cgltf_size* size, void** data);
+	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data);
+	void* file_user_data;
+} cgltf_options;
 
 typedef enum cgltf_buffer_view_type
 {
@@ -562,6 +565,10 @@ typedef struct cgltf_data
 
 	void (*memory_free) (void* user, void* ptr);
 	void* memory_user_data;
+
+	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data);
+	void* file_user_data;
+
 } cgltf_data;
 
 cgltf_result cgltf_parse(
@@ -722,6 +729,69 @@ static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_siz
 	return result;
 }
 
+static cgltf_result cgltf_default_file_read(const cgltf_options* options, const char* path, cgltf_size* size, void** data)
+{
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+
+	FILE* file = fopen(path, "rb");
+	if (!file)
+	{
+		return cgltf_result_file_not_found;
+	}
+
+	cgltf_size file_size = size ? *size : 0;
+
+	if (file_size == 0)
+	{
+		fseek(file, 0, SEEK_END);
+
+		long length = ftell(file);
+		if (length < 0)
+		{
+			fclose(file);
+			return cgltf_result_io_error;
+		}
+
+		fseek(file, 0, SEEK_SET);
+		file_size = (cgltf_size)length;
+	}
+
+	char* file_data = (char*)memory_alloc(options->memory_user_data, file_size);
+	if (!file_data)
+	{
+		fclose(file);
+		return cgltf_result_out_of_memory;
+	}
+	
+	cgltf_size read_size = fread(file_data, 1, file_size, file);
+
+	fclose(file);
+
+	if (read_size != file_size)
+	{
+		memory_free(options->memory_user_data, file_data);
+		return cgltf_result_io_error;
+	}
+
+	if (size)
+	{
+		*size = file_size;
+	}
+	if (data)
+	{
+		*data = file_data;
+	}
+
+	return cgltf_result_success;
+}
+
+static void cgltf_default_file_release(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data)
+{
+	void (*memfree)(void*, void*) = memory_free ? memory_free : &cgltf_default_free;
+	memfree(memory_user_data, data);
+}
+
 static cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk, cgltf_size size, cgltf_data** out_data);
 
 cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_size size, cgltf_data** out_data)
@@ -865,43 +935,17 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 
 	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
 	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+	cgltf_result (*file_read)(const cgltf_options*, const char*, cgltf_size*, void**) = options->file_read ? options->file_read : &cgltf_default_file_read;
 
-	FILE* file = fopen(path, "rb");
-	if (!file)
+	void* file_data = NULL;
+	cgltf_size file_size = 0;
+	cgltf_result result = file_read(options, path, &file_size, &file_data);
+	if (result != cgltf_result_success)
 	{
-		return cgltf_result_file_not_found;
+		return result;
 	}
 
-	fseek(file, 0, SEEK_END);
-
-	long length = ftell(file);
-	if (length < 0)
-	{
-		fclose(file);
-		return cgltf_result_io_error;
-	}
-
-	fseek(file, 0, SEEK_SET);
-
-	char* file_data = (char*)memory_alloc(options->memory_user_data, length);
-	if (!file_data)
-	{
-		fclose(file);
-		return cgltf_result_out_of_memory;
-	}
-
-	cgltf_size file_size = (cgltf_size)length;
-	cgltf_size read_size = fread(file_data, 1, file_size, file);
-
-	fclose(file);
-
-	if (read_size != file_size)
-	{
-		memory_free(options->memory_user_data, file_data);
-		return cgltf_result_io_error;
-	}
-
-	cgltf_result result = cgltf_parse(options, file_data, file_size, out_data);
+	result = cgltf_parse(options, file_data, file_size, out_data);
 
 	if (result != cgltf_result_success)
 	{
@@ -937,6 +981,7 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 {
 	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
 	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+	cgltf_result (*file_read)(const cgltf_options*, const char*, cgltf_size*, void**) = options->file_read ? options->file_read : &cgltf_default_file_read;
 
 	char* path = (char*)memory_alloc(options->memory_user_data, strlen(uri) + strlen(gltf_path) + 1);
 	if (!path)
@@ -946,30 +991,11 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 
 	cgltf_combine_paths(path, gltf_path, uri);
 
-	FILE* file = fopen(path, "rb");
-
-	memory_free(options->memory_user_data, path);
-
-	if (!file)
+	void* file_data = NULL;
+	cgltf_result result = file_read(options, path, &size, &file_data);
+	if (result >= cgltf_result_success)
 	{
-		return cgltf_result_file_not_found;
-	}
-
-	char* file_data = (char*)memory_alloc(options->memory_user_data, size);
-	if (!file_data)
-	{
-		fclose(file);
-		return cgltf_result_out_of_memory;
-	}
-
-	cgltf_size read_size = fread(file_data, 1, size, file);
-
-	fclose(file);
-
-	if (read_size != size)
-	{
-		memory_free(options->memory_user_data, file_data);
-		return cgltf_result_io_error;
+		return result;
 	}
 
 	*out_data = file_data;
@@ -1372,6 +1398,8 @@ void cgltf_free(cgltf_data* data)
 		return;
 	}
 
+	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data) = data->file_release ? data->file_release : cgltf_default_file_release;
+
 	data->memory_free(data->memory_user_data, data->asset.copyright);
 	data->memory_free(data->memory_user_data, data->asset.generator);
 	data->memory_free(data->memory_user_data, data->asset.version);
@@ -1384,7 +1412,7 @@ void cgltf_free(cgltf_data* data)
 	{
 		if (data->buffers[i].data != data->bin)
 		{
-			data->memory_free(data->memory_user_data, data->buffers[i].data);
+			file_release(data->memory_free, data->memory_user_data, data->file_user_data, data->buffers[i].data);
 		}
 
 		data->memory_free(data->memory_user_data, data->buffers[i].uri);
@@ -1518,7 +1546,7 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory_free(data->memory_user_data, data->extensions_required);
 
-	data->memory_free(data->memory_user_data, data->file_data);
+	file_release(data->memory_free, data->memory_user_data, data->file_user_data, data->file_data);
 
 	data->memory_free(data->memory_user_data, data);
 }
@@ -4419,6 +4447,8 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	memset(data, 0, sizeof(cgltf_data));
 	data->memory_free = options->memory_free;
 	data->memory_user_data = options->memory_user_data;
+	data->file_release = options->file_release;
+	data->file_user_data = options->file_user_data;
 
 	int i = cgltf_parse_json_root(options, tokens, 0, json_chunk, data);
 
