@@ -1796,25 +1796,28 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 
 static cgltf_uint cgltf_component_read_uint(const void* in, cgltf_component_type component_type)
 {
-    switch (component_type)
-    {
-        case cgltf_component_type_r_8:
-        return *((const int8_t*) in);
+	switch (component_type)
+	{
+		case cgltf_component_type_r_8:
+		return *((const int8_t*) in);
 
-        case cgltf_component_type_r_8u:
-        return *((const uint8_t*) in);
+		case cgltf_component_type_r_8u:
+		return *((const uint8_t*) in);
 
-        case cgltf_component_type_r_16:
-        return *((const int16_t*) in);
+		case cgltf_component_type_r_16:
+		return *((const int16_t*) in);
 
-        case cgltf_component_type_r_16u:
-        return *((const uint16_t*) in);
+		case cgltf_component_type_r_16u:
+		return *((const uint16_t*) in);
 
-        case cgltf_component_type_r_32u:
-        return *((const uint32_t*) in);
-    }
+		case cgltf_component_type_r_32u:
+		return *((const uint32_t*) in);
 
-    return 0;
+		default:
+		return 0;
+	}
+
+	return 0;
 }
 
 static cgltf_bool cgltf_element_read_uint(const uint8_t* element, cgltf_type type, cgltf_component_type component_type, cgltf_uint* out, cgltf_size element_size)

@@ -74,7 +74,7 @@ int main(int argc, char** argv)
 			}
 			if ( min0 != blob->min[0] || max0 != blob->max[0] )
 			{
-				printf( "Computed [%f, %f] but expected [%f, %f]\n", min0, max0, blob->min[0], blob->max[0] );
+				printf( "Computed [%u, %u] but expected [%u, %u]\n", min0, max0, blob->min[0], blob->max[0] );
 				return -1;
 			}
 		}
