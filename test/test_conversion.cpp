@@ -72,9 +72,9 @@ int main(int argc, char** argv)
 				min0 = std::min( min0, element_uint[0] );
 				max0 = std::max( max0, element_uint[0] );
 			}
-			if ( min0 != blob->min[0] || max0 != blob->max[0] )
+			if ( min0 != (unsigned int) blob->min[0] || max0 != (unsigned int) blob->max[0] )
 			{
-				printf( "Computed [%u, %u] but expected [%u, %u]\n", min0, max0, blob->min[0], blob->max[0] );
+				printf( "Computed [%u, %u] but expected [%u, %u]\n", min0, max0, (unsigned int) blob->min[0], (unsigned int) blob->max[0] );
 				return -1;
 			}
 		}
