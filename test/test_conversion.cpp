@@ -62,7 +62,7 @@ int main(int argc, char** argv)
 				return -1;
 			}
 		}
-		if ( blob->has_max && blob->has_min )
+		if (blob->has_max && blob->has_min && blob->component_type != cgltf_component_type_r_32f && blob->component_type != cgltf_component_type_invalid)
 		{
 			cgltf_uint min0 = std::numeric_limits<unsigned int>::max();
 			cgltf_uint max0 = std::numeric_limits<unsigned int>::lowest();
