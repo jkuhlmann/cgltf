@@ -71,7 +71,7 @@
  * floating point, assuming that `cgltf_load_buffers` has already been called. The passed-in element
  * size is the number of floats in the output buffer, which should be in the range [1, 16]. Returns
  * false if the passed-in element_size is too small, or if the accessor is sparse.
-
+ *
  * `cgltf_accessor_read_uint` is similar to its floating-point counterpart, but limited to reading
  * vector types and does not support matrix types. The passed-in element size is the number of uints
  * in the output buffer, which should be in the range [1, 4]. Returns false if the passed-in 
@@ -1799,22 +1799,22 @@ static cgltf_uint cgltf_component_read_uint(const void* in, cgltf_component_type
 	switch (component_type)
 	{
 		case cgltf_component_type_r_8:
-		return *((const int8_t*) in);
+			return *((const int8_t*) in);
 
 		case cgltf_component_type_r_8u:
-		return *((const uint8_t*) in);
+			return *((const uint8_t*) in);
 
 		case cgltf_component_type_r_16:
-		return *((const int16_t*) in);
+			return *((const int16_t*) in);
 
 		case cgltf_component_type_r_16u:
-		return *((const uint16_t*) in);
+			return *((const uint16_t*) in);
 
 		case cgltf_component_type_r_32u:
-		return *((const uint32_t*) in);
+			return *((const uint32_t*) in);
 
 		default:
-		return 0;
+			return 0;
 	}
 
 	return 0;
