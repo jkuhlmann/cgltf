@@ -119,16 +119,26 @@ typedef enum cgltf_result
 	cgltf_result_legacy_gltf,
 } cgltf_result;
 
+typedef struct cgltf_memory_options
+{
+	void* (*alloc)(void* user, cgltf_size size);
+	void (*free) (void* user, void* ptr);
+	void* user_data;
+} cgltf_memory_options;
+
+typedef struct cgltf_file_options
+{
+	cgltf_result(*read)(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, const char* path, cgltf_size* size, void** data);
+	void (*release)(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, void* data);
+	void* user_data;
+} cgltf_file_options;
+
 typedef struct cgltf_options
 {
 	cgltf_file_type type; /* invalid == auto detect */
 	cgltf_size json_token_count; /* 0 == auto */
-	void* (*memory_alloc)(void* user, cgltf_size size);
-	void (*memory_free) (void* user, void* ptr);
-	void* memory_user_data;
-	cgltf_result (*file_read)(const struct cgltf_options* options, const char* path, cgltf_size* size, void** data);
-	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data);
-	void* file_user_data;
+	cgltf_memory_options memory;
+	cgltf_file_options file;
 } cgltf_options;
 
 typedef enum cgltf_buffer_view_type
@@ -563,12 +573,8 @@ typedef struct cgltf_data
 	const void* bin;
 	cgltf_size bin_size;
 
-	void (*memory_free) (void* user, void* ptr);
-	void* memory_user_data;
-
-	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data);
-	void* file_user_data;
-
+	cgltf_memory_options memory;
+	cgltf_file_options file;
 } cgltf_data;
 
 cgltf_result cgltf_parse(
@@ -720,7 +726,7 @@ static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_siz
 	{
 		return NULL;
 	}
-	void* result = options->memory_alloc(options->memory_user_data, element_size * count);
+	void* result = options->memory.alloc(options->memory.user_data, element_size * count);
 	if (!result)
 	{
 		return NULL;
@@ -729,10 +735,11 @@ static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_siz
 	return result;
 }
 
-static cgltf_result cgltf_default_file_read(const cgltf_options* options, const char* path, cgltf_size* size, void** data)
+static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, const char* path, cgltf_size* size, void** data)
 {
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+	(void)file_options;
+	void* (*memory_alloc)(void*, cgltf_size) = memory_options->alloc ? memory_options->alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = memory_options->free ? memory_options->free : &cgltf_default_free;
 
 	FILE* file = fopen(path, "rb");
 	if (!file)
@@ -757,7 +764,7 @@ static cgltf_result cgltf_default_file_read(const cgltf_options* options, const 
 		file_size = (cgltf_size)length;
 	}
 
-	char* file_data = (char*)memory_alloc(options->memory_user_data, file_size);
+	char* file_data = (char*)memory_alloc(memory_options->user_data, file_size);
 	if (!file_data)
 	{
 		fclose(file);
@@ -770,7 +777,7 @@ static cgltf_result cgltf_default_file_read(const cgltf_options* options, const 
 
 	if (read_size != file_size)
 	{
-		memory_free(options->memory_user_data, file_data);
+		memory_free(memory_options->user_data, file_data);
 		return cgltf_result_io_error;
 	}
 
@@ -786,10 +793,11 @@ static cgltf_result cgltf_default_file_read(const cgltf_options* options, const 
 	return cgltf_result_success;
 }
 
-static void cgltf_default_file_release(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data)
+static void cgltf_default_file_release(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, void* data)
 {
-	void (*memfree)(void*, void*) = memory_free ? memory_free : &cgltf_default_free;
-	memfree(memory_user_data, data);
+	(void)file_options;
+	void (*memfree)(void*, void*) = memory_options->free ? memory_options->free : &cgltf_default_free;
+	memfree(memory_options->user_data, data);
 }
 
 static cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk, cgltf_size size, cgltf_data** out_data);
@@ -807,13 +815,13 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 	}
 
 	cgltf_options fixed_options = *options;
-	if (fixed_options.memory_alloc == NULL)
+	if (fixed_options.memory.alloc == NULL)
 	{
-		fixed_options.memory_alloc = &cgltf_default_alloc;
+		fixed_options.memory.alloc = &cgltf_default_alloc;
 	}
-	if (fixed_options.memory_free == NULL)
+	if (fixed_options.memory.free == NULL)
 	{
-		fixed_options.memory_free = &cgltf_default_free;
+		fixed_options.memory.free = &cgltf_default_free;
 	}
 
 	uint32_t tmp;
@@ -933,13 +941,13 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 		return cgltf_result_invalid_options;
 	}
 
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
-	cgltf_result (*file_read)(const cgltf_options*, const char*, cgltf_size*, void**) = options->file_read ? options->file_read : &cgltf_default_file_read;
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
+	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
 
 	void* file_data = NULL;
 	cgltf_size file_size = 0;
-	cgltf_result result = file_read(options, path, &file_size, &file_data);
+	cgltf_result result = file_read(&options->memory, &options->file, path, &file_size, &file_data);
 	if (result != cgltf_result_success)
 	{
 		return result;
@@ -949,7 +957,7 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 
 	if (result != cgltf_result_success)
 	{
-		memory_free(options->memory_user_data, file_data);
+		memory_free(options->memory.user_data, file_data);
 		return result;
 	}
 
@@ -979,11 +987,11 @@ static void cgltf_combine_paths(char* path, const char* base, const char* uri)
 
 static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_size size, const char* uri, const char* gltf_path, void** out_data)
 {
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
-	cgltf_result (*file_read)(const cgltf_options*, const char*, cgltf_size*, void**) = options->file_read ? options->file_read : &cgltf_default_file_read;
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
+	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
 
-	char* path = (char*)memory_alloc(options->memory_user_data, strlen(uri) + strlen(gltf_path) + 1);
+	char* path = (char*)memory_alloc(options->memory.user_data, strlen(uri) + strlen(gltf_path) + 1);
 	if (!path)
 	{
 		return cgltf_result_out_of_memory;
@@ -992,7 +1000,7 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 	cgltf_combine_paths(path, gltf_path, uri);
 
 	void* file_data = NULL;
-	cgltf_result result = file_read(options, path, &size, &file_data);
+	cgltf_result result = file_read(&options->memory, &options->file, path, &size, &file_data);
 	if (result != cgltf_result_success)
 	{
 		return result;
@@ -1005,10 +1013,10 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 
 cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data)
 {
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory_alloc ? options->memory_alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory_free ? options->memory_free : &cgltf_default_free;
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
 
-	unsigned char* data = (unsigned char*)memory_alloc(options->memory_user_data, size);
+	unsigned char* data = (unsigned char*)memory_alloc(options->memory.user_data, size);
 	if (!data)
 	{
 		return cgltf_result_out_of_memory;
@@ -1033,7 +1041,7 @@ cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size s
 
 			if (index < 0)
 			{
-				memory_free(options->memory_user_data, data);
+				memory_free(options->memory.user_data, data);
 				return cgltf_result_io_error;
 			}
 
@@ -1398,157 +1406,157 @@ void cgltf_free(cgltf_data* data)
 		return;
 	}
 
-	void (*file_release)(void (*memory_free) (void* user, void* ptr), void* memory_user_data, void* file_user_data, void* data) = data->file_release ? data->file_release : cgltf_default_file_release;
+	void (*file_release)(const struct cgltf_memory_options*, const struct cgltf_file_options*, void* data) = data->file.release ? data->file.release : cgltf_default_file_release;
 
-	data->memory_free(data->memory_user_data, data->asset.copyright);
-	data->memory_free(data->memory_user_data, data->asset.generator);
-	data->memory_free(data->memory_user_data, data->asset.version);
-	data->memory_free(data->memory_user_data, data->asset.min_version);
+	data->memory.free(data->memory.user_data, data->asset.copyright);
+	data->memory.free(data->memory.user_data, data->asset.generator);
+	data->memory.free(data->memory.user_data, data->asset.version);
+	data->memory.free(data->memory.user_data, data->asset.min_version);
 
-	data->memory_free(data->memory_user_data, data->accessors);
-	data->memory_free(data->memory_user_data, data->buffer_views);
+	data->memory.free(data->memory.user_data, data->accessors);
+	data->memory.free(data->memory.user_data, data->buffer_views);
 
 	for (cgltf_size i = 0; i < data->buffers_count; ++i)
 	{
 		if (data->buffers[i].data != data->bin)
 		{
-			file_release(data->memory_free, data->memory_user_data, data->file_user_data, data->buffers[i].data);
+			file_release(&data->memory, &data->file, data->buffers[i].data);
 		}
 
-		data->memory_free(data->memory_user_data, data->buffers[i].uri);
+		data->memory.free(data->memory.user_data, data->buffers[i].uri);
 	}
 
-	data->memory_free(data->memory_user_data, data->buffers);
+	data->memory.free(data->memory.user_data, data->buffers);
 
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->meshes[i].name);
+		data->memory.free(data->memory.user_data, data->meshes[i].name);
 
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 			{
-				data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].attributes[k].name);
+				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].attributes[k].name);
 			}
 
-			data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].attributes);
+			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].attributes);
 
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
 			{
 				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
 				{
-					data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets[k].attributes[m].name);
+					data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes[m].name);
 				}
 
-				data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets[k].attributes);
+				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes);
 			}
 
-			data->memory_free(data->memory_user_data, data->meshes[i].primitives[j].targets);
+			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets);
 		}
 
-		data->memory_free(data->memory_user_data, data->meshes[i].primitives);
-		data->memory_free(data->memory_user_data, data->meshes[i].weights);
+		data->memory.free(data->memory.user_data, data->meshes[i].primitives);
+		data->memory.free(data->memory.user_data, data->meshes[i].weights);
 
 		for (cgltf_size j = 0; j < data->meshes[i].target_names_count; ++j)
 		{
-			data->memory_free(data->memory_user_data, data->meshes[i].target_names[j]);
+			data->memory.free(data->memory.user_data, data->meshes[i].target_names[j]);
 		}
 
-		data->memory_free(data->memory_user_data, data->meshes[i].target_names);
+		data->memory.free(data->memory.user_data, data->meshes[i].target_names);
 	}
 
-	data->memory_free(data->memory_user_data, data->meshes);
+	data->memory.free(data->memory.user_data, data->meshes);
 
 	for (cgltf_size i = 0; i < data->materials_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->materials[i].name);
+		data->memory.free(data->memory.user_data, data->materials[i].name);
 	}
 
-	data->memory_free(data->memory_user_data, data->materials);
+	data->memory.free(data->memory.user_data, data->materials);
 
 	for (cgltf_size i = 0; i < data->images_count; ++i) 
 	{
-		data->memory_free(data->memory_user_data, data->images[i].name);
-		data->memory_free(data->memory_user_data, data->images[i].uri);
-		data->memory_free(data->memory_user_data, data->images[i].mime_type);
+		data->memory.free(data->memory.user_data, data->images[i].name);
+		data->memory.free(data->memory.user_data, data->images[i].uri);
+		data->memory.free(data->memory.user_data, data->images[i].mime_type);
 	}
 
-	data->memory_free(data->memory_user_data, data->images);
+	data->memory.free(data->memory.user_data, data->images);
 
 	for (cgltf_size i = 0; i < data->textures_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->textures[i].name);
+		data->memory.free(data->memory.user_data, data->textures[i].name);
 	}
 
-	data->memory_free(data->memory_user_data, data->textures);
+	data->memory.free(data->memory.user_data, data->textures);
 
-	data->memory_free(data->memory_user_data, data->samplers);
+	data->memory.free(data->memory.user_data, data->samplers);
 
 	for (cgltf_size i = 0; i < data->skins_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->skins[i].name);
-		data->memory_free(data->memory_user_data, data->skins[i].joints);
+		data->memory.free(data->memory.user_data, data->skins[i].name);
+		data->memory.free(data->memory.user_data, data->skins[i].joints);
 	}
 
-	data->memory_free(data->memory_user_data, data->skins);
+	data->memory.free(data->memory.user_data, data->skins);
 
 	for (cgltf_size i = 0; i < data->cameras_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->cameras[i].name);
+		data->memory.free(data->memory.user_data, data->cameras[i].name);
 	}
 
-	data->memory_free(data->memory_user_data, data->cameras);
+	data->memory.free(data->memory.user_data, data->cameras);
 
 	for (cgltf_size i = 0; i < data->lights_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->lights[i].name);
+		data->memory.free(data->memory.user_data, data->lights[i].name);
 	}
 
-	data->memory_free(data->memory_user_data, data->lights);
+	data->memory.free(data->memory.user_data, data->lights);
 
 	for (cgltf_size i = 0; i < data->nodes_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->nodes[i].name);
-		data->memory_free(data->memory_user_data, data->nodes[i].children);
-		data->memory_free(data->memory_user_data, data->nodes[i].weights);
+		data->memory.free(data->memory.user_data, data->nodes[i].name);
+		data->memory.free(data->memory.user_data, data->nodes[i].children);
+		data->memory.free(data->memory.user_data, data->nodes[i].weights);
 	}
 
-	data->memory_free(data->memory_user_data, data->nodes);
+	data->memory.free(data->memory.user_data, data->nodes);
 
 	for (cgltf_size i = 0; i < data->scenes_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->scenes[i].name);
-		data->memory_free(data->memory_user_data, data->scenes[i].nodes);
+		data->memory.free(data->memory.user_data, data->scenes[i].name);
+		data->memory.free(data->memory.user_data, data->scenes[i].nodes);
 	}
 
-	data->memory_free(data->memory_user_data, data->scenes);
+	data->memory.free(data->memory.user_data, data->scenes);
 
 	for (cgltf_size i = 0; i < data->animations_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->animations[i].name);
-		data->memory_free(data->memory_user_data, data->animations[i].samplers);
-		data->memory_free(data->memory_user_data, data->animations[i].channels);
+		data->memory.free(data->memory.user_data, data->animations[i].name);
+		data->memory.free(data->memory.user_data, data->animations[i].samplers);
+		data->memory.free(data->memory.user_data, data->animations[i].channels);
 	}
 
-	data->memory_free(data->memory_user_data, data->animations);
+	data->memory.free(data->memory.user_data, data->animations);
 
 	for (cgltf_size i = 0; i < data->extensions_used_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->extensions_used[i]);
+		data->memory.free(data->memory.user_data, data->extensions_used[i]);
 	}
 
-	data->memory_free(data->memory_user_data, data->extensions_used);
+	data->memory.free(data->memory.user_data, data->extensions_used);
 
 	for (cgltf_size i = 0; i < data->extensions_required_count; ++i)
 	{
-		data->memory_free(data->memory_user_data, data->extensions_required[i]);
+		data->memory.free(data->memory.user_data, data->extensions_required[i]);
 	}
 
-	data->memory_free(data->memory_user_data, data->extensions_required);
+	data->memory.free(data->memory.user_data, data->extensions_required);
 
-	file_release(data->memory_free, data->memory_user_data, data->file_user_data, data->file_data);
+	file_release(&data->memory, &data->file, data->file_data);
 
-	data->memory_free(data->memory_user_data, data);
+	data->memory.free(data->memory.user_data, data);
 }
 
 void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix)
@@ -1944,7 +1952,7 @@ static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* toke
 		return CGLTF_ERROR_JSON;
 	}
 	int size = tokens[i].end - tokens[i].start;
-	char* result = (char*)options->memory_alloc(options->memory_user_data, size + 1);
+	char* result = (char*)options->memory.alloc(options->memory.user_data, size + 1);
 	if (!result)
 	{
 		return CGLTF_ERROR_NOMEM;
@@ -4415,7 +4423,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		options->json_token_count = token_count;
 	}
 
-	jsmntok_t* tokens = (jsmntok_t*)options->memory_alloc(options->memory_user_data, sizeof(jsmntok_t) * (options->json_token_count + 1));
+	jsmntok_t* tokens = (jsmntok_t*)options->memory.alloc(options->memory.user_data, sizeof(jsmntok_t) * (options->json_token_count + 1));
 
 	if (!tokens)
 	{
@@ -4428,7 +4436,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	if (token_count <= 0)
 	{
-		options->memory_free(options->memory_user_data, tokens);
+		options->memory.free(options->memory.user_data, tokens);
 		return cgltf_result_invalid_json;
 	}
 
@@ -4436,23 +4444,21 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	// for invalid JSON inputs this makes sure we don't perform out of bound reads of token data
 	tokens[token_count].type = JSMN_UNDEFINED;
 
-	cgltf_data* data = (cgltf_data*)options->memory_alloc(options->memory_user_data, sizeof(cgltf_data));
+	cgltf_data* data = (cgltf_data*)options->memory.alloc(options->memory.user_data, sizeof(cgltf_data));
 
 	if (!data)
 	{
-		options->memory_free(options->memory_user_data, tokens);
+		options->memory.free(options->memory.user_data, tokens);
 		return cgltf_result_out_of_memory;
 	}
 
 	memset(data, 0, sizeof(cgltf_data));
-	data->memory_free = options->memory_free;
-	data->memory_user_data = options->memory_user_data;
-	data->file_release = options->file_release;
-	data->file_user_data = options->file_user_data;
+	data->memory = options->memory;
+	data->file = options->file;
 
 	int i = cgltf_parse_json_root(options, tokens, 0, json_chunk, data);
 
-	options->memory_free(options->memory_user_data, tokens);
+	options->memory.free(options->memory.user_data, tokens);
 
 	if (i < 0)
 	{
