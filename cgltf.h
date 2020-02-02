@@ -24,8 +24,8 @@
  *
  * `cgltf_options` is the struct passed to `cgltf_parse()` to control
  * parts of the parsing process. You can use it to force the file type
- * and provide memory allocation callbacks. Should be zero-initialized
- * to trigger default behavior.
+ * and provide memory allocation as well as file operation callbacks. 
+ * Should be zero-initialized to trigger default behavior.
  *
  * `cgltf_data` is the struct allocated and filled by `cgltf_parse()`.
  * It generally mirrors the glTF format as described by the spec (see
