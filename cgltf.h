@@ -948,7 +948,6 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 		return cgltf_result_invalid_options;
 	}
 
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
 	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
 	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
 
@@ -995,7 +994,6 @@ static void cgltf_combine_paths(char* path, const char* base, const char* uri)
 static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_size size, const char* uri, const char* gltf_path, void** out_data)
 {
 	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
 	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
 
 	char* path = (char*)memory_alloc(options->memory.user_data, strlen(uri) + strlen(gltf_path) + 1);
@@ -1852,8 +1850,6 @@ static cgltf_uint cgltf_component_read_uint(const void* in, cgltf_component_type
 		default:
 			return 0;
 	}
-
-	return 0;
 }
 
 static cgltf_bool cgltf_element_read_uint(const uint8_t* element, cgltf_type type, cgltf_component_type component_type, cgltf_uint* out, cgltf_size element_size)
