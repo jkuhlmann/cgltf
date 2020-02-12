@@ -13,7 +13,8 @@ int main(int argc, char** argv)
 		return -1;
 	}
 
-	cgltf_options options = {0};
+	cgltf_options options;
+	memset(&options, 0, sizeof(cgltf_options));
 	cgltf_data* data = NULL;
 	cgltf_result result = cgltf_parse_file(&options, argv[1], &data);
 
