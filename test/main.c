@@ -28,7 +28,7 @@ int main(int argc, char** argv)
 	if (result == cgltf_result_success)
 	{
 		printf("Type: %u\n", data->file_type);
-		printf("Meshes: %lu\n", data->meshes_count);
+		printf("Meshes: %u\n", (unsigned)data->meshes_count);
 	}
 
 	cgltf_free(data);
