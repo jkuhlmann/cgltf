@@ -386,9 +386,9 @@ typedef struct cgltf_morph_target {
 } cgltf_morph_target;
 
 typedef struct cgltf_draco_mesh_compression {
-    cgltf_buffer_view* buffer_view;
-    cgltf_attribute* attributes;
-    cgltf_size attributes_count;
+	cgltf_buffer_view* buffer_view;
+	cgltf_attribute* attributes;
+	cgltf_size attributes_count;
 } cgltf_draco_mesh_compression;
 
 typedef struct cgltf_primitive {
@@ -400,8 +400,8 @@ typedef struct cgltf_primitive {
 	cgltf_morph_target* targets;
 	cgltf_size targets_count;
 	cgltf_extras extras;
-    cgltf_bool has_draco_mesh_compression;
-    cgltf_draco_mesh_compression draco_mesh_compression;
+	cgltf_bool has_draco_mesh_compression;
+	cgltf_draco_mesh_compression draco_mesh_compression;
 } cgltf_primitive;
 
 typedef struct cgltf_mesh {
@@ -2179,28 +2179,28 @@ static int cgltf_parse_json_extras(jsmntok_t const* tokens, int i, const uint8_t
 
 static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_draco_mesh_compression* out_draco_mesh_compression)
 {
-    CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
-    int size = tokens[i].size;
-    ++i;
+	int size = tokens[i].size;
+	++i;
 
-    for (int j = 0; j < size; ++j)
-    {
-        CGLTF_CHECK_KEY(tokens[i]);
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
 
-        if (cgltf_json_strcmp(tokens + i, json_chunk, "attributes") == 0)
-        {
-            i = cgltf_parse_json_attribute_list(options, tokens, i + 1, json_chunk, &out_draco_mesh_compression->attributes, &out_draco_mesh_compression->attributes_count);
-        }
-        else if (cgltf_json_strcmp(tokens + i, json_chunk, "bufferView") == 0)
-        {
-            ++i;
-            out_draco_mesh_compression->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
-            ++i;
-        }
-    }
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "attributes") == 0)
+		{
+			i = cgltf_parse_json_attribute_list(options, tokens, i + 1, json_chunk, &out_draco_mesh_compression->attributes, &out_draco_mesh_compression->attributes_count);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "bufferView") == 0)
+		{
+			++i;
+			out_draco_mesh_compression->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
+			++i;
+		}
+	}
 
-    return i;
+	return i;
 }
 
 static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_primitive* out_prim)
@@ -2261,35 +2261,35 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_prim->extras);
 		}
-        else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
-        {
-            ++i;
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
 
-            CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
-            int extensions_size = tokens[i].size;
-            ++i;
+			int extensions_size = tokens[i].size;
+			++i;
 
-            for (int k = 0; k < extensions_size; ++k)
-            {
-                CGLTF_CHECK_KEY(tokens[i]);
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
 
-                if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_draco_mesh_compression") == 0)
-                {
-                    out_prim->has_draco_mesh_compression = 1;
-                    i = cgltf_parse_json_draco_mesh_compression(options, tokens, i + 1, json_chunk, &out_prim->draco_mesh_compression);
-                }
-                else
-                {
-                    i = cgltf_skip_json(tokens, i+1);
-                }
+				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_draco_mesh_compression") == 0)
+				{
+					out_prim->has_draco_mesh_compression = 1;
+					i = cgltf_parse_json_draco_mesh_compression(options, tokens, i + 1, json_chunk, &out_prim->draco_mesh_compression);
+				}
+				else
+				{
+					i = cgltf_skip_json(tokens, i+1);
+				}
 
-                if (i < 0)
-                {
-                    return i;
-                }
-            }
-        }
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -4645,13 +4645,13 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 				}
 			}
 
-            if (data->meshes[i].primitives[j].has_draco_mesh_compression) {
-                CGLTF_PTRFIXUP_REQ(data->meshes[i].primitives[j].draco_mesh_compression.buffer_view, data->buffer_views, data->buffer_views_count);
+			if (data->meshes[i].primitives[j].has_draco_mesh_compression) {
+				CGLTF_PTRFIXUP_REQ(data->meshes[i].primitives[j].draco_mesh_compression.buffer_view, data->buffer_views, data->buffer_views_count);
 				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].draco_mesh_compression.attributes_count; ++m)
 				{
 					CGLTF_PTRFIXUP_REQ(data->meshes[i].primitives[j].draco_mesh_compression.attributes[m].data, data->accessors, data->accessors_count);
 				}
-            }
+			}
 		}
 	}
 

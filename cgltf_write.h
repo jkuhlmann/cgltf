@@ -410,28 +410,28 @@ static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_prim
 
 	cgltf_bool has_extensions = prim->has_draco_mesh_compression;
 	if (has_extensions) {
-        cgltf_write_line(context, "\"extensions\": {");
+		cgltf_write_line(context, "\"extensions\": {");
 
-        if (prim->has_draco_mesh_compression) {
-            context->extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
-            if (prim->attributes_count == 0 || prim->indices == 0) {
-                context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;                
-            }
+		if (prim->has_draco_mesh_compression) {
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
+			if (prim->attributes_count == 0 || prim->indices == 0) {
+				context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;				 
+			}
 
-            cgltf_write_line(context, "\"KHR_draco_mesh_compression\": {");
-            CGLTF_WRITE_IDXPROP("bufferView", prim->draco_mesh_compression.buffer_view, context->data->buffer_views);
-            cgltf_write_line(context, "\"attributes\": {");
-            for (cgltf_size i = 0; i < prim->draco_mesh_compression.attributes_count; ++i)
-            {
-                const cgltf_attribute* attr = prim->draco_mesh_compression.attributes + i;
-                CGLTF_WRITE_IDXPROP(attr->name, attr->data, context->data->accessors);
-            }
-            cgltf_write_line(context, "}");
-            cgltf_write_line(context, "}");
-        }
+			cgltf_write_line(context, "\"KHR_draco_mesh_compression\": {");
+			CGLTF_WRITE_IDXPROP("bufferView", prim->draco_mesh_compression.buffer_view, context->data->buffer_views);
+			cgltf_write_line(context, "\"attributes\": {");
+			for (cgltf_size i = 0; i < prim->draco_mesh_compression.attributes_count; ++i)
+			{
+				const cgltf_attribute* attr = prim->draco_mesh_compression.attributes + i;
+				CGLTF_WRITE_IDXPROP(attr->name, attr->data, context->data->accessors);
+			}
+			cgltf_write_line(context, "}");
+			cgltf_write_line(context, "}");
+		}
 
-        cgltf_write_line(context, "}");
-    }
+		cgltf_write_line(context, "}");
+	}
 }
 
 static void cgltf_write_mesh(cgltf_write_context* context, const cgltf_mesh* mesh)
@@ -1054,13 +1054,13 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 	if (context->extension_flags != 0) {
 		cgltf_write_line(context, "\"extensionsUsed\": [");
-        cgltf_write_extensions(context, context->extension_flags);
+		cgltf_write_extensions(context, context->extension_flags);
 		cgltf_write_line(context, "]");
 	}
 
 	if (context->required_extension_flags != 0) {
 		cgltf_write_line(context, "\"extensionsRequired\": [");
-        cgltf_write_extensions(context, context->required_extension_flags);
+		cgltf_write_extensions(context, context->required_extension_flags);
 		cgltf_write_line(context, "]");
 	}
 
