@@ -632,8 +632,8 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
  *
  */
 
-#ifdef __INTELLISENSE__
-/* This makes MSVC intellisense work. */
+#if defined(__INTELLISENSE__) || defined(__JETBRAINS_IDE__)
+/* This makes MSVC/CLion intellisense work. */
 #define CGLTF_IMPLEMENTATION
 #endif
 
