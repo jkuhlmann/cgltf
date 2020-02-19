@@ -2572,7 +2572,6 @@ static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i, const uint8
 		{
 			++i;
 			out_accessor->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
-            printf("bufferView = %p\n", out_accessor->buffer_view);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteOffset") == 0)
