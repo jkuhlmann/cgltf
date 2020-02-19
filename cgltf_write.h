@@ -863,7 +863,6 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 	return cgltf_result_success;
 }
 
-
 static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extension_flags)
 {
 	if (extension_flags & CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM) {
