@@ -497,6 +497,11 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_SPECULAR_GLOSSINESS;
 	}
 
+	if (material->has_clearcoat)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_CLEARCOAT;
+	}
+
 	if (material->has_pbr_metallic_roughness)
 	{
 		const cgltf_pbr_metallic_roughness* params = &material->pbr_metallic_roughness;
