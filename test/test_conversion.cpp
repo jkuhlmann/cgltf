@@ -30,7 +30,8 @@ int main(int argc, char** argv)
 		return result;
 
 	const cgltf_accessor* blobs = data->accessors;
-	cgltf_float element[16];
+	cgltf_float element_float[16];
+	cgltf_uint element_uint[4];
 	for (cgltf_size blob_index = 0; blob_index < data->accessors_count; ++blob_index)
 	{
 		const cgltf_accessor* blob = data->accessors + blob_index;
@@ -51,13 +52,29 @@ int main(int argc, char** argv)
 			cgltf_float max0 = std::numeric_limits<float>::lowest();
 			for (cgltf_size index = 0; index < blob->count; index++)
 			{
-				cgltf_accessor_read_float(blob, index, element, 16);
-				min0 = std::min(min0, element[0]);
-				max0 = std::max(max0, element[0]);
+				cgltf_accessor_read_float(blob, index, element_float, 16);
+				min0 = std::min(min0, element_float[0]);
+				max0 = std::max(max0, element_float[0]);
 			}
 			if (!is_near(min0, blob->min[0]) || !is_near(max0, blob->max[0]))
 			{
 				printf("Computed [%f, %f] but expected [%f, %f]\n", min0, max0, blob->min[0], blob->max[0]);
+				return -1;
+			}
+		}
+		if (blob->has_max && blob->has_min && blob->component_type != cgltf_component_type_r_32f && blob->component_type != cgltf_component_type_invalid)
+		{
+			cgltf_uint min0 = std::numeric_limits<unsigned int>::max();
+			cgltf_uint max0 = std::numeric_limits<unsigned int>::lowest();
+			for ( cgltf_size index = 0; index < blob->count; index++ )
+			{
+				cgltf_accessor_read_uint( blob, index, element_uint, 4 );
+				min0 = std::min( min0, element_uint[0] );
+				max0 = std::max( max0, element_uint[0] );
+			}
+			if ( min0 != (unsigned int) blob->min[0] || max0 != (unsigned int) blob->max[0] )
+			{
+				printf( "Computed [%u, %u] but expected [%u, %u]\n", min0, max0, (unsigned int) blob->min[0], (unsigned int) blob->max[0] );
 				return -1;
 			}
 		}

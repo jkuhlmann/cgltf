@@ -1,7 +1,7 @@
 /**
  * cgltf_write - a single-file glTF 2.0 writer written in C99.
  *
- * Version: 1.4
+ * Version: 1.5
  *
  * Website: https://github.com/jkuhlmann/cgltf
  *
@@ -801,7 +801,7 @@ static void cgltf_write_light(cgltf_write_context* context, const cgltf_light* l
 	}
 	if (cgltf_check_floatarray(light->color, 3, 1.0f))
 	{
-		cgltf_write_floatarrayprop(context, "light", light->color, 3);
+		cgltf_write_floatarrayprop(context, "color", light->color, 3);
 	}
 	cgltf_write_floatprop(context, "intensity", light->intensity, 1.0f);
 	cgltf_write_floatprop(context, "range", light->range, 0.0f);
