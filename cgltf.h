@@ -239,12 +239,20 @@ typedef struct cgltf_extras {
 	cgltf_size end_offset;
 } cgltf_extras;
 
+typedef struct cgltf_extension {
+	char* name;
+	cgltf_size start_offset;
+	cgltf_size end_offset;
+} cgltf_extension;
+
 typedef struct cgltf_buffer
 {
 	cgltf_size size;
 	char* uri;
 	void* data; /* loaded by cgltf_load_buffers */
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_buffer;
 
 typedef struct cgltf_buffer_view
@@ -255,6 +263,8 @@ typedef struct cgltf_buffer_view
 	cgltf_size stride; /* 0 == automatically determined by accessor */
 	cgltf_buffer_view_type type;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_buffer_view;
 
 typedef struct cgltf_accessor_sparse
@@ -268,6 +278,12 @@ typedef struct cgltf_accessor_sparse
 	cgltf_extras extras;
 	cgltf_extras indices_extras;
 	cgltf_extras values_extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
+	cgltf_size indices_extensions_count;
+	cgltf_extension* indices_extensions;
+	cgltf_size values_extensions_count;
+	cgltf_extension* values_extensions;
 } cgltf_accessor_sparse;
 
 typedef struct cgltf_accessor
@@ -286,6 +302,8 @@ typedef struct cgltf_accessor
 	cgltf_bool is_sparse;
 	cgltf_accessor_sparse sparse;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_accessor;
 
 typedef struct cgltf_attribute
@@ -303,6 +321,8 @@ typedef struct cgltf_image
 	cgltf_buffer_view* buffer_view;
 	char* mime_type;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_image;
 
 typedef struct cgltf_sampler
@@ -312,6 +332,8 @@ typedef struct cgltf_sampler
 	cgltf_int wrap_s;
 	cgltf_int wrap_t;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_sampler;
 
 typedef struct cgltf_texture
@@ -320,6 +342,8 @@ typedef struct cgltf_texture
 	cgltf_image* image;
 	cgltf_sampler* sampler;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_texture;
 
 typedef struct cgltf_texture_transform
@@ -338,6 +362,8 @@ typedef struct cgltf_texture_view
 	cgltf_bool has_transform;
 	cgltf_texture_transform transform;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_texture_view;
 
 typedef struct cgltf_pbr_metallic_roughness
@@ -390,6 +416,8 @@ typedef struct cgltf_material
 	cgltf_bool double_sided;
 	cgltf_bool unlit;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_material;
 
 typedef struct cgltf_morph_target {
@@ -414,6 +442,8 @@ typedef struct cgltf_primitive {
 	cgltf_extras extras;
 	cgltf_bool has_draco_mesh_compression;
 	cgltf_draco_mesh_compression draco_mesh_compression;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_primitive;
 
 typedef struct cgltf_mesh {
@@ -425,6 +455,8 @@ typedef struct cgltf_mesh {
 	char** target_names;
 	cgltf_size target_names_count;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_mesh;
 
 typedef struct cgltf_node cgltf_node;
@@ -436,6 +468,8 @@ typedef struct cgltf_skin {
 	cgltf_node* skeleton;
 	cgltf_accessor* inverse_bind_matrices;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_skin;
 
 typedef struct cgltf_camera_perspective {
@@ -462,6 +496,8 @@ typedef struct cgltf_camera {
 		cgltf_camera_orthographic orthographic;
 	} data;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_camera;
 
 typedef struct cgltf_light {
@@ -494,6 +530,8 @@ struct cgltf_node {
 	cgltf_float scale[3];
 	cgltf_float matrix[16];
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 };
 
 typedef struct cgltf_scene {
@@ -501,6 +539,8 @@ typedef struct cgltf_scene {
 	cgltf_node** nodes;
 	cgltf_size nodes_count;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_scene;
 
 typedef struct cgltf_animation_sampler {
@@ -508,6 +548,8 @@ typedef struct cgltf_animation_sampler {
 	cgltf_accessor* output;
 	cgltf_interpolation_type interpolation;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_animation_sampler;
 
 typedef struct cgltf_animation_channel {
@@ -515,6 +557,8 @@ typedef struct cgltf_animation_channel {
 	cgltf_node* target_node;
 	cgltf_animation_path_type target_path;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_animation_channel;
 
 typedef struct cgltf_animation {
@@ -524,6 +568,8 @@ typedef struct cgltf_animation {
 	cgltf_animation_channel* channels;
 	cgltf_size channels_count;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_animation;
 
 typedef struct cgltf_asset {
@@ -532,6 +578,8 @@ typedef struct cgltf_asset {
 	char* version;
 	char* min_version;
 	cgltf_extras extras;
+	cgltf_size extensions_count;
+	cgltf_extension* extensions;
 } cgltf_asset;
 
 typedef struct cgltf_data
@@ -586,6 +634,9 @@ typedef struct cgltf_data
 	cgltf_size animations_count;
 
 	cgltf_extras extras;
+
+	cgltf_size data_extensions_count;
+	cgltf_extension* data_extensions;
 
 	char** extensions_used;
 	cgltf_size extensions_used_count;
@@ -1436,8 +1487,49 @@ void cgltf_free(cgltf_data* data)
 	data->memory.free(data->memory.user_data, data->asset.generator);
 	data->memory.free(data->memory.user_data, data->asset.version);
 	data->memory.free(data->memory.user_data, data->asset.min_version);
+	for (cgltf_size i = 0; i < data->asset.extensions_count; ++i)
+	{
+		data->memory.free(data->memory.user_data, data->asset.extensions[i].name);
+	}
+	data->memory.free(data->memory.user_data, data->asset.extensions);
 
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	{
+		if(data->accessors[i].is_sparse)
+		{
+			for (cgltf_size j = 0; j < data->accessors[i].sparse.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->accessors[i].sparse.extensions);
+			for (cgltf_size j = 0; j < data->accessors[i].sparse.indices_extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.indices_extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->accessors[i].sparse.indices_extensions);
+			for (cgltf_size j = 0; j < data->accessors[i].sparse.values_extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.values_extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->accessors[i].sparse.values_extensions);
+		}
+
+		for (cgltf_size j = 0; j < data->accessors[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->accessors[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->accessors[i].extensions);
+	}
 	data->memory.free(data->memory.user_data, data->accessors);
+
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	{
+		for (cgltf_size j = 0; j < data->buffer_views[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->buffer_views[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->buffer_views[i].extensions);
+	}
 	data->memory.free(data->memory.user_data, data->buffer_views);
 
 	for (cgltf_size i = 0; i < data->buffers_count; ++i)
@@ -1446,8 +1538,13 @@ void cgltf_free(cgltf_data* data)
 		{
 			file_release(&data->memory, &data->file, data->buffers[i].data);
 		}
-
 		data->memory.free(data->memory.user_data, data->buffers[i].uri);
+
+		for (cgltf_size j = 0; j < data->buffers[j].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->buffers[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->buffers[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->buffers);
@@ -1486,6 +1583,12 @@ void cgltf_free(cgltf_data* data)
 
 				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].draco_mesh_compression.attributes);
 			}
+
+			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].extensions_count; ++k)
+			{
+				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].extensions[k].name);
+			}
+			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].extensions);
 		}
 
 		data->memory.free(data->memory.user_data, data->meshes[i].primitives);
@@ -1496,6 +1599,12 @@ void cgltf_free(cgltf_data* data)
 			data->memory.free(data->memory.user_data, data->meshes[i].target_names[j]);
 		}
 
+		for (cgltf_size j = 0; j < data->meshes[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->meshes[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->meshes[i].extensions);
+
 		data->memory.free(data->memory.user_data, data->meshes[i].target_names);
 	}
 
@@ -1504,6 +1613,57 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->materials_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->materials[i].name);
+
+		if(data->materials[i].has_pbr_metallic_roughness)
+		{
+			for (cgltf_size j = 0; j < data->materials[i].pbr_metallic_roughness.base_color_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.base_color_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.base_color_texture.extensions);
+			for (cgltf_size j = 0; j < data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions);
+		}
+		if(data->materials[i].has_pbr_specular_glossiness)
+		{
+			for (cgltf_size j = 0; j < data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions);
+			for (cgltf_size j = 0; j < data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions);
+		}
+		if(data->materials[i].has_clearcoat)
+		{
+			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_texture.extensions);
+			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_roughness_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_roughness_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_roughness_texture.extensions);
+			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_normal_texture.extensions_count; ++j)
+			{
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions[j].name);
+			}
+			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions);
+		}
+
+		for (cgltf_size j = 0; j < data->materials[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->materials[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->materials[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->materials);
@@ -1513,6 +1673,12 @@ void cgltf_free(cgltf_data* data)
 		data->memory.free(data->memory.user_data, data->images[i].name);
 		data->memory.free(data->memory.user_data, data->images[i].uri);
 		data->memory.free(data->memory.user_data, data->images[i].mime_type);
+
+		for (cgltf_size j = 0; j < data->images[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->images[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->images[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->images);
@@ -1520,9 +1686,23 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->textures_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->textures[i].name);
+		for (cgltf_size j = 0; j < data->textures[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->textures[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->textures[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->textures);
+
+	for (cgltf_size i = 0; i < data->samplers_count; ++i)
+	{
+		for (cgltf_size j = 0; j < data->samplers[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->samplers[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->samplers[i].extensions);
+	}
 
 	data->memory.free(data->memory.user_data, data->samplers);
 
@@ -1530,6 +1710,12 @@ void cgltf_free(cgltf_data* data)
 	{
 		data->memory.free(data->memory.user_data, data->skins[i].name);
 		data->memory.free(data->memory.user_data, data->skins[i].joints);
+
+		for (cgltf_size j = 0; j < data->skins[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->skins[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->skins[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->skins);
@@ -1537,6 +1723,11 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->cameras_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->cameras[i].name);
+		for (cgltf_size j = 0; j < data->cameras[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->cameras[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->cameras[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->cameras);
@@ -1553,6 +1744,11 @@ void cgltf_free(cgltf_data* data)
 		data->memory.free(data->memory.user_data, data->nodes[i].name);
 		data->memory.free(data->memory.user_data, data->nodes[i].children);
 		data->memory.free(data->memory.user_data, data->nodes[i].weights);
+		for (cgltf_size j = 0; j < data->nodes[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->nodes[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->nodes[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->nodes);
@@ -1561,6 +1757,12 @@ void cgltf_free(cgltf_data* data)
 	{
 		data->memory.free(data->memory.user_data, data->scenes[i].name);
 		data->memory.free(data->memory.user_data, data->scenes[i].nodes);
+
+		for (cgltf_size j = 0; j < data->scenes[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->scenes[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->scenes[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->scenes);
@@ -1568,11 +1770,40 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->animations_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->animations[i].name);
+		for (cgltf_size j = 0; j <  data->animations[i].samplers_count; ++j)
+		{
+			for (cgltf_size k = 0; k < data->animations[i].samplers[j].extensions_count; ++k)
+			{
+				data->memory.free(data->memory.user_data, data->animations[i].samplers[j].extensions[k].name);
+			}
+			data->memory.free(data->memory.user_data, data->animations[i].samplers[j].extensions);
+		}
 		data->memory.free(data->memory.user_data, data->animations[i].samplers);
+
+		for (cgltf_size j = 0; j <  data->animations[i].channels_count; ++j)
+		{
+			for (cgltf_size k = 0; k < data->animations[i].channels[j].extensions_count; ++k)
+			{
+				data->memory.free(data->memory.user_data, data->animations[i].channels[j].extensions[k].name);
+			}
+			data->memory.free(data->memory.user_data, data->animations[i].channels[j].extensions);
+		}
 		data->memory.free(data->memory.user_data, data->animations[i].channels);
+
+		for (cgltf_size j = 0; j < data->animations[i].extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->animations[i].extensions[j].name);
+		}
+		data->memory.free(data->memory.user_data, data->animations[i].extensions);
 	}
 
 	data->memory.free(data->memory.user_data, data->animations);
+
+	for (cgltf_size i = 0; i < data->data_extensions_count; ++i)
+	{
+		data->memory.free(data->memory.user_data, data->data_extensions[i].name);
+	}
+	data->memory.free(data->memory.user_data, data->data_extensions);
 
 	for (cgltf_size i = 0; i < data->extensions_used_count; ++i)
 	{
@@ -2198,6 +2429,22 @@ static int cgltf_parse_json_extras(jsmntok_t const* tokens, int i, const uint8_t
 	return i;
 }
 
+static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extension* out_extension)
+{
+	cgltf_size name_length = tokens[i].end - tokens[i].start;
+	out_extension->name = (char*)options->memory.alloc(options->memory.user_data, name_length + 1);
+	strncpy(out_extension->name, (const char*)json_chunk + tokens[i].start, name_length);
+	out_extension->name[name_length] = 0;
+	i++;
+
+	out_extension->start_offset = tokens[i].start;
+	out_extension->end_offset = tokens[i].end;
+
+	i = cgltf_skip_json(tokens, i);
+
+	return i;
+}
+
 static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_draco_mesh_compression* out_draco_mesh_compression)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -2289,8 +2536,10 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 			int extensions_size = tokens[i].size;
-			++i;
+			int unprocessed_extensions = 0;
+			out_prim->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
 
+			++i;
 			for (int k = 0; k < extensions_size; ++k)
 			{
 				CGLTF_CHECK_KEY(tokens[i]);
@@ -2302,7 +2551,7 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 				}
 				else
 				{
-					i = cgltf_skip_json(tokens, i+1);
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_prim->extensions[unprocessed_extensions++]));
 				}
 
 				if (i < 0)
@@ -2310,6 +2559,7 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 					return i;
 				}
 			}
+			out_prim->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -2403,6 +2653,31 @@ static int cgltf_parse_json_mesh(cgltf_options* options, jsmntok_t const* tokens
 				i = cgltf_skip_json(tokens, i);
 			}
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_mesh->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_mesh->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_mesh->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -2459,7 +2734,7 @@ static cgltf_component_type cgltf_json_to_component_type(jsmntok_t const* tok, c
 	}
 }
 
-static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor_sparse* out_sparse)
+static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor_sparse* out_sparse)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -2510,6 +2785,31 @@ static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, cons
 				{
 					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_sparse->indices_extras);
 				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+				{
+					++i;
+
+					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+					int extensions_size = tokens[i].size;
+					int unprocessed_extensions = 0;
+					out_sparse->indices_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+					++i;
+
+					for (int k = 0; k < extensions_size; ++k)
+					{
+						CGLTF_CHECK_KEY(tokens[i]);
+
+						i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_sparse->indices_extensions[unprocessed_extensions++]));
+
+						if (i < 0)
+						{
+							return i;
+						}
+					}
+					out_sparse->indices_extensions_count = unprocessed_extensions;
+				}
 				else
 				{
 					i = cgltf_skip_json(tokens, i+1);
@@ -2549,6 +2849,31 @@ static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, cons
 				{
 					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_sparse->values_extras);
 				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+				{
+					++i;
+
+					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+					int extensions_size = tokens[i].size;
+					int unprocessed_extensions = 0;
+					out_sparse->values_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+					++i;
+
+					for (int k = 0; k < extensions_size; ++k)
+					{
+						CGLTF_CHECK_KEY(tokens[i]);
+
+						i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_sparse->values_extensions[unprocessed_extensions++]));
+
+						if (i < 0)
+						{
+							return i;
+						}
+					}
+					out_sparse->values_extensions_count = unprocessed_extensions;
+				}
 				else
 				{
 					i = cgltf_skip_json(tokens, i+1);
@@ -2564,6 +2889,31 @@ static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, cons
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_sparse->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_sparse->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_sparse->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_sparse->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -2578,7 +2928,7 @@ static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, cons
 	return i;
 }
 
-static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor* out_accessor)
+static int cgltf_parse_json_accessor(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor* out_accessor)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -2673,11 +3023,36 @@ static int cgltf_parse_json_accessor(jsmntok_t const* tokens, int i, const uint8
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "sparse") == 0)
 		{
 			out_accessor->is_sparse = 1;
-			i = cgltf_parse_json_accessor_sparse(tokens, i + 1, json_chunk, &out_accessor->sparse);
+			i = cgltf_parse_json_accessor_sparse(options, tokens, i + 1, json_chunk, &out_accessor->sparse);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_accessor->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_accessor->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_accessor->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_accessor->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -2738,7 +3113,7 @@ static int cgltf_parse_json_texture_transform(jsmntok_t const* tokens, int i, co
 	return i;
 }
 
-static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_view* out_texture_view)
+static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_view* out_texture_view)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -2787,6 +3162,9 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_texture_view->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
 			++i;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -2800,7 +3178,7 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 				}
 				else
 				{
-					i = cgltf_skip_json(tokens, i+1);
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_texture_view->extensions[unprocessed_extensions++]));
 				}
 
 				if (i < 0)
@@ -2808,6 +3186,7 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 					return i;
 				}
 			}
+			out_texture_view->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -2823,7 +3202,7 @@ static int cgltf_parse_json_texture_view(jsmntok_t const* tokens, int i, const u
 	return i;
 }
 
-static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_metallic_roughness* out_pbr)
+static int cgltf_parse_json_pbr_metallic_roughness(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_metallic_roughness* out_pbr)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -2854,12 +3233,12 @@ static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int 
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "baseColorTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk,
 				&out_pbr->base_color_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "metallicRoughnessTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk,
 				&out_pbr->metallic_roughness_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
@@ -2880,7 +3259,7 @@ static int cgltf_parse_json_pbr_metallic_roughness(jsmntok_t const* tokens, int 
 	return i;
 }
 
-static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_specular_glossiness* out_pbr)
+static int cgltf_parse_json_pbr_specular_glossiness(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_specular_glossiness* out_pbr)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 	int size = tokens[i].size;
@@ -2906,11 +3285,11 @@ static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "diffuseTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->diffuse_texture);
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk, &out_pbr->diffuse_texture);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "specularGlossinessTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_pbr->specular_glossiness_texture);
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk, &out_pbr->specular_glossiness_texture);
 		}
 		else
 		{
@@ -2926,7 +3305,7 @@ static int cgltf_parse_json_pbr_specular_glossiness(jsmntok_t const* tokens, int
 	return i;
 }
 
-static int cgltf_parse_json_clearcoat(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_clearcoat* out_clearcoat)
+static int cgltf_parse_json_clearcoat(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_clearcoat* out_clearcoat)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 	int size = tokens[i].size;
@@ -2950,15 +3329,15 @@ static int cgltf_parse_json_clearcoat(jsmntok_t const* tokens, int i, const uint
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "clearcoatTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_texture);
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_texture);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "clearcoatRoughnessTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_roughness_texture);
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_roughness_texture);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "clearcoatNormalTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_normal_texture);
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk, &out_clearcoat->clearcoat_normal_texture);
 		}
 		else
 		{
@@ -3006,6 +3385,31 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_image->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_image->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_image->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_image->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -3068,6 +3472,31 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_sampler->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_sampler->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_sampler->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_sampler->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i + 1);
@@ -3114,6 +3543,30 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_texture->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			++i;
+
+			out_texture->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_texture->extensions_count = extensions_size;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_texture->extensions[k]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i + 1);
@@ -3156,7 +3609,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "pbrMetallicRoughness") == 0)
 		{
 			out_material->has_pbr_metallic_roughness = 1;
-			i = cgltf_parse_json_pbr_metallic_roughness(tokens, i + 1, json_chunk, &out_material->pbr_metallic_roughness);
+			i = cgltf_parse_json_pbr_metallic_roughness(options, tokens, i + 1, json_chunk, &out_material->pbr_metallic_roughness);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "emissiveFactor") == 0)
 		{
@@ -3164,17 +3617,17 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "normalTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk,
 				&out_material->normal_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "occlusionTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk,
 				&out_material->occlusion_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "emissiveTexture") == 0)
 		{
-			i = cgltf_parse_json_texture_view(tokens, i + 1, json_chunk,
+			i = cgltf_parse_json_texture_view(options, tokens, i + 1, json_chunk,
 				&out_material->emissive_texture);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "alphaMode") == 0)
@@ -3219,6 +3672,9 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 
 			int extensions_size = tokens[i].size;
 			++i;
+			out_material->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			int unhandled_extensions = 0;
 
 			for (int k = 0; k < extensions_size; ++k)
 			{
@@ -3227,7 +3683,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_pbrSpecularGlossiness") == 0)
 				{
 					out_material->has_pbr_specular_glossiness = 1;
-					i = cgltf_parse_json_pbr_specular_glossiness(tokens, i + 1, json_chunk, &out_material->pbr_specular_glossiness);
+					i = cgltf_parse_json_pbr_specular_glossiness(options, tokens, i + 1, json_chunk, &out_material->pbr_specular_glossiness);
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_unlit") == 0)
 				{
@@ -3237,11 +3693,11 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_clearcoat") == 0)
 				{
 					out_material->has_clearcoat = 1;
-					i = cgltf_parse_json_clearcoat(tokens, i + 1, json_chunk, &out_material->clearcoat);
+					i = cgltf_parse_json_clearcoat(options, tokens, i + 1, json_chunk, &out_material->clearcoat);
 				}
 				else
 				{
-					i = cgltf_skip_json(tokens, i+1);
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_material->extensions[unhandled_extensions++]));
 				}
 
 				if (i < 0)
@@ -3249,6 +3705,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 					return i;
 				}
 			}
+			out_material->extensions_count = unhandled_extensions;
 		}
 		else
 		{
@@ -3274,7 +3731,7 @@ static int cgltf_parse_json_accessors(cgltf_options* options, jsmntok_t const* t
 
 	for (cgltf_size j = 0; j < out_data->accessors_count; ++j)
 	{
-		i = cgltf_parse_json_accessor(tokens, i, json_chunk, &out_data->accessors[j]);
+		i = cgltf_parse_json_accessor(options, tokens, i, json_chunk, &out_data->accessors[j]);
 		if (i < 0)
 		{
 			return i;
@@ -3359,7 +3816,7 @@ static int cgltf_parse_json_samplers(cgltf_options* options, jsmntok_t const* to
 	return i;
 }
 
-static int cgltf_parse_json_buffer_view(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_buffer_view* out_buffer_view)
+static int cgltf_parse_json_buffer_view(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_buffer_view* out_buffer_view)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
@@ -3420,6 +3877,31 @@ static int cgltf_parse_json_buffer_view(jsmntok_t const* tokens, int i, const ui
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_buffer_view->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_buffer_view->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_buffer_view->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_buffer_view->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -3444,7 +3926,7 @@ static int cgltf_parse_json_buffer_views(cgltf_options* options, jsmntok_t const
 
 	for (cgltf_size j = 0; j < out_data->buffer_views_count; ++j)
 	{
-		i = cgltf_parse_json_buffer_view(tokens, i, json_chunk, &out_data->buffer_views[j]);
+		i = cgltf_parse_json_buffer_view(options, tokens, i, json_chunk, &out_data->buffer_views[j]);
 		if (i < 0)
 		{
 			return i;
@@ -3478,6 +3960,31 @@ static int cgltf_parse_json_buffer(cgltf_options* options, jsmntok_t const* toke
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_buffer->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_buffer->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_buffer->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_buffer->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -3558,6 +4065,31 @@ static int cgltf_parse_json_skin(cgltf_options* options, jsmntok_t const* tokens
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_skin->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_skin->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_skin->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_skin->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -3731,6 +4263,31 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_camera->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_camera->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_camera->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_camera->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -3982,6 +4539,9 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_node->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
 			++i;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -4021,7 +4581,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 				}
 				else
 				{
-					i = cgltf_skip_json(tokens, i+1);
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_node->extensions[unprocessed_extensions++]));
 				}
 
 				if (i < 0)
@@ -4029,6 +4589,7 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 					return i;
 				}
 			}
+			out_node->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -4095,6 +4656,31 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_scene->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_scene->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_scene->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_scene->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -4174,6 +4760,31 @@ static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t 
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_sampler->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_sampler->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_sampler->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_sampler->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -4249,6 +4860,31 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 				{
 					i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_channel->extras);
+				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+				{
+					++i;
+
+					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+					int extensions_size = tokens[i].size;
+					int unprocessed_extensions = 0;
+					out_channel->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+					++i;
+
+					for (int k = 0; k < extensions_size; ++k)
+					{
+						CGLTF_CHECK_KEY(tokens[i]);
+
+						i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_channel->extensions[unprocessed_extensions++]));
+
+						if (i < 0)
+						{
+							return i;
+						}
+					}
+					out_channel->extensions_count = unprocessed_extensions;
 				}
 				else
 				{
@@ -4328,6 +4964,31 @@ static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* t
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_animation->extras);
 		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_animation->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_animation->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_animation->extensions_count = unprocessed_extensions;
+		}
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
@@ -4391,6 +5052,31 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
 		{
 			i = cgltf_parse_json_extras(tokens, i + 1, json_chunk, &out_asset->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			++i;
+
+			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_asset->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
+			++i;
+
+			for (int k = 0; k < extensions_size; ++k)
+			{
+				CGLTF_CHECK_KEY(tokens[i]);
+
+				i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_asset->extensions[unprocessed_extensions++]));
+
+				if (i < 0)
+				{
+					return i;
+				}
+			}
+			out_asset->extensions_count = unprocessed_extensions;
 		}
 		else
 		{
@@ -4551,6 +5237,9 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
 			int extensions_size = tokens[i].size;
+			int unprocessed_extensions = 0;
+			out_data->data_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+
 			++i;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -4587,7 +5276,7 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 				}
 				else
 				{
-					i = cgltf_skip_json(tokens, i + 1);
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_data->data_extensions[unprocessed_extensions++]));
 				}
 
 				if (i < 0)
@@ -4595,6 +5284,8 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 					return i;
 				}
 			}
+			out_data->data_extensions_count = unprocessed_extensions;
+
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensionsUsed") == 0)
 		{
