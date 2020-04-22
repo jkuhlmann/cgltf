@@ -88,6 +88,14 @@
  * into the provided buffer. If `dest` is NULL, the length of the data is written into
  * `dest_size`. You can then parse this data using your own JSON parser
  * or, if you've included the cgltf implementation using the integrated JSMN JSON parser.
+ *
+ * `cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension,
+ * char* dest, cgltf_size* dest_size)` allows users to retrieve the JSON data for extension that
+ * hasn't been processed by cgltf. The `cgltf_extension` struct stores name of extension and the
+ * offsets of the start and end of the extension JSON data as it appears in the complete glTF JSON
+ * data. This function copies the extension data into the provided buffer. If `dest` is NULL,
+ * the length of the data is written into `dest_size`. You can then parse this data using your own
+ * JSON parser or, if you've included the cgltf implementation using the integrated JSMN JSON parser.
  */
 #ifndef CGLTF_H_INCLUDED__
 #define CGLTF_H_INCLUDED__
@@ -689,6 +697,7 @@ cgltf_size cgltf_num_components(cgltf_type type);
 cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count);
 
 cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size);
+cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension, char* dest, cgltf_size* dest_size);
 
 #ifdef __cplusplus
 }
@@ -1468,6 +1477,34 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 	else
 	{
 		strncpy(dest, data->json + extras->start_offset, json_size);
+		dest[json_size] = 0;
+	}
+
+	return cgltf_result_success;
+}
+
+cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension, char* dest, cgltf_size* dest_size)
+{
+	cgltf_size json_size = extension->end_offset - extension->start_offset;
+
+	if (!dest)
+	{
+		if (dest_size)
+		{
+			*dest_size = json_size + 1;
+			return cgltf_result_success;
+		}
+		return cgltf_result_invalid_options;
+	}
+
+	if (*dest_size + 1 < json_size)
+	{
+		strncpy(dest, data->json + extension->start_offset, *dest_size - 1);
+		dest[*dest_size - 1] = 0;
+	}
+	else
+	{
+		strncpy(dest, data->json + extension->start_offset, json_size);
 		dest[json_size] = 0;
 	}
 
