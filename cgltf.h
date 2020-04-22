@@ -3701,8 +3701,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 			int extensions_size = tokens[i].size;
 			++i;
 			out_material->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
-
-			int unhandled_extensions = 0;
+			out_material->extensions_count= 0;
 
 			for (int k = 0; k < extensions_size; ++k)
 			{
@@ -3725,16 +3724,14 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				}
 				else
 				{
-					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_material->extensions[unhandled_extensions++]));
+					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_material->extensions[out_material->extensions_count++]));
 				}
 
 				if (i < 0)
 				{
-					out_material->extensions_count = unhandled_extensions;
 					return i;
 				}
 			}
-			out_material->extensions_count = unhandled_extensions;
 		}
 		else
 		{
