@@ -2832,7 +2832,7 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 
 					++i;
 
-					for (int k = 0; k < extensions_size; ++k)
+					for (int l = 0; l < extensions_size; ++l)
 					{
 						CGLTF_CHECK_KEY(tokens[i]);
 
@@ -2895,7 +2895,7 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 
 					++i;
 
-					for (int k = 0; k < extensions_size; ++k)
+					for (int l = 0; l < extensions_size; ++l)
 					{
 						CGLTF_CHECK_KEY(tokens[i]);
 
@@ -4892,7 +4892,7 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 
 					++i;
 
-					for (int k = 0; k < extensions_size; ++k)
+					for (int l = 0; l < extensions_size; ++l)
 					{
 						CGLTF_CHECK_KEY(tokens[i]);
 
