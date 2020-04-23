@@ -2468,6 +2468,12 @@ static int cgltf_parse_json_extras(jsmntok_t const* tokens, int i, const uint8_t
 
 static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extension* out_extension)
 {
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_STRING);
+	if (out_extension->name)
+	{
+		return CGLTF_ERROR_JSON;
+	}
+
 	cgltf_size name_length = tokens[i].end - tokens[i].start;
 	out_extension->name = (char*)options->memory.alloc(options->memory.user_data, name_length + 1);
 	strncpy(out_extension->name, (const char*)json_chunk + tokens[i].start, name_length);
@@ -2571,10 +2577,14 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_prim->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_prim->extensions_count = 0;
-			out_prim->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_prim->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 			for (int k = 0; k < extensions_size; ++k)
@@ -2694,10 +2704,14 @@ static int cgltf_parse_json_mesh(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_mesh->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_mesh->extensions_count = 0;
-			out_mesh->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_mesh->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -2825,10 +2839,14 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 					++i;
 
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+					if(out_sparse->indices_extensions)
+					{
+						return CGLTF_ERROR_JSON;
+					}
 
 					int extensions_size = tokens[i].size;
 					out_sparse->indices_extensions_count = 0;
-					out_sparse->indices_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+					out_sparse->indices_extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 					++i;
 
@@ -2888,10 +2906,14 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 					++i;
 
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+					if(out_sparse->values_extensions)
+					{
+						return CGLTF_ERROR_JSON;
+					}
 
 					int extensions_size = tokens[i].size;
 					out_sparse->values_extensions_count = 0;
-					out_sparse->values_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+					out_sparse->values_extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 					++i;
 
@@ -2927,10 +2949,14 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_sparse->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_sparse->extensions_count = 0;
-			out_sparse->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_sparse->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3066,10 +3092,14 @@ static int cgltf_parse_json_accessor(cgltf_options* options, jsmntok_t const* to
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_accessor->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_accessor->extensions_count = 0;
-			out_accessor->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_accessor->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3191,10 +3221,14 @@ static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_texture_view->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_texture_view->extensions_count = 0;
-			out_texture_view->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_texture_view->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3421,10 +3455,14 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_image->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_image->extensions_count = 0;
-			out_image->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_image->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3506,10 +3544,14 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_sampler->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_sampler->extensions_count = 0;
-			out_sampler->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_sampler->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3576,10 +3618,14 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_texture->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_texture->extensions_count = 0;
-			out_texture->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_texture->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3697,10 +3743,14 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_material->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			++i;
-			out_material->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_material->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 			out_material->extensions_count= 0;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -3908,10 +3958,14 @@ static int cgltf_parse_json_buffer_view(cgltf_options* options, jsmntok_t const*
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_buffer_view->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_buffer_view->extensions_count = 0;
-			out_buffer_view->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_buffer_view->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -3991,10 +4045,14 @@ static int cgltf_parse_json_buffer(cgltf_options* options, jsmntok_t const* toke
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_buffer->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_buffer->extensions_count = 0;
-			out_buffer->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_buffer->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4095,10 +4153,14 @@ static int cgltf_parse_json_skin(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_skin->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_skin->extensions_count = 0;
-			out_skin->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_skin->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4292,10 +4354,14 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_camera->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_camera->extensions_count = 0;
-			out_camera->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_camera->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4559,10 +4625,14 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_node->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_node->extensions_count= 0;
-			out_node->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_node->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4683,10 +4753,14 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_scene->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_scene->extensions_count = 0;
-			out_scene->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_scene->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4785,10 +4859,14 @@ static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t 
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_sampler->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_sampler->extensions_count = 0;
-			out_sampler->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_sampler->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -4885,10 +4963,14 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 					++i;
 
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+					if(out_channel->extensions)
+					{
+						return CGLTF_ERROR_JSON;
+					}
 
 					int extensions_size = tokens[i].size;
 					out_channel->extensions_count = 0;
-					out_channel->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+					out_channel->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 					++i;
 
@@ -4987,10 +5069,14 @@ static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* t
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_animation->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_animation->extensions_count = 0;
-			out_animation->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_animation->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -5075,10 +5161,14 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_asset->extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_asset->extensions_count = 0;
-			out_asset->extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_asset->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
@@ -5251,10 +5341,14 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 			++i;
 
 			CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+			if(out_data->data_extensions)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			int extensions_size = tokens[i].size;
 			out_data->data_extensions_count = 0;
-			out_data->data_extensions = (cgltf_extension*)options->memory.alloc(options->memory.user_data, extensions_size*sizeof(cgltf_extension));
+			out_data->data_extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			++i;
 
