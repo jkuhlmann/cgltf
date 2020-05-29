@@ -1682,6 +1682,25 @@ void cgltf_free(cgltf_data* data)
 			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions);
 		}
 
+		for (cgltf_size j = 0; j < data->materials[i].normal_texture.extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->materials[i].normal_texture.extensions[j].name);
+			data->memory.free(data->memory.user_data, data->materials[i].normal_texture.extensions[j].data);
+		}
+		data->memory.free(data->memory.user_data, data->materials[i].normal_texture.extensions);
+		for (cgltf_size j = 0; j < data->materials[i].occlusion_texture.extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->materials[i].occlusion_texture.extensions[j].name);
+			data->memory.free(data->memory.user_data, data->materials[i].occlusion_texture.extensions[j].data);
+		}
+		data->memory.free(data->memory.user_data, data->materials[i].occlusion_texture.extensions);
+		for (cgltf_size j = 0; j < data->materials[i].emissive_texture.extensions_count; ++j)
+		{
+			data->memory.free(data->memory.user_data, data->materials[i].emissive_texture.extensions[j].name);
+			data->memory.free(data->memory.user_data, data->materials[i].emissive_texture.extensions[j].data);
+		}
+		data->memory.free(data->memory.user_data, data->materials[i].emissive_texture.extensions);
+
 		for (cgltf_size j = 0; j < data->materials[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->materials[i].extensions[j].name);
@@ -2467,6 +2486,7 @@ static int cgltf_parse_json_extras(jsmntok_t const* tokens, int i, const uint8_t
 static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extension* out_extension)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_STRING);
+	CGLTF_CHECK_TOKTYPE(tokens[i+1], JSMN_OBJECT);
 	if (out_extension->name)
 	{
 		return CGLTF_ERROR_JSON;
