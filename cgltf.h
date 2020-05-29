@@ -249,8 +249,7 @@ typedef struct cgltf_extras {
 
 typedef struct cgltf_extension {
 	char* name;
-	cgltf_size start_offset;
-	cgltf_size end_offset;
+	char* data;
 } cgltf_extension;
 
 typedef struct cgltf_buffer
@@ -697,7 +696,6 @@ cgltf_size cgltf_num_components(cgltf_type type);
 cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count);
 
 cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size);
-cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension, char* dest, cgltf_size* dest_size);
 
 #ifdef __cplusplus
 }
@@ -1483,34 +1481,6 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 	return cgltf_result_success;
 }
 
-cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension, char* dest, cgltf_size* dest_size)
-{
-	cgltf_size json_size = extension->end_offset - extension->start_offset;
-
-	if (!dest)
-	{
-		if (dest_size)
-		{
-			*dest_size = json_size + 1;
-			return cgltf_result_success;
-		}
-		return cgltf_result_invalid_options;
-	}
-
-	if (*dest_size + 1 < json_size)
-	{
-		strncpy(dest, data->json + extension->start_offset, *dest_size - 1);
-		dest[*dest_size - 1] = 0;
-	}
-	else
-	{
-		strncpy(dest, data->json + extension->start_offset, json_size);
-		dest[json_size] = 0;
-	}
-
-	return cgltf_result_success;
-}
-
 void cgltf_free(cgltf_data* data)
 {
 	if (!data)
@@ -1527,6 +1497,7 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->asset.extensions_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->asset.extensions[i].name);
+		data->memory.free(data->memory.user_data, data->asset.extensions[i].data);
 	}
 	data->memory.free(data->memory.user_data, data->asset.extensions);
 
@@ -1537,16 +1508,19 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size j = 0; j < data->accessors[i].sparse.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->accessors[i].sparse.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->accessors[i].sparse.extensions);
 			for (cgltf_size j = 0; j < data->accessors[i].sparse.indices_extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->accessors[i].sparse.indices_extensions[j].name);
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.indices_extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->accessors[i].sparse.indices_extensions);
 			for (cgltf_size j = 0; j < data->accessors[i].sparse.values_extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->accessors[i].sparse.values_extensions[j].name);
+				data->memory.free(data->memory.user_data, data->accessors[i].sparse.values_extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->accessors[i].sparse.values_extensions);
 		}
@@ -1554,6 +1528,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->accessors[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->accessors[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->accessors[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->accessors[i].extensions);
 	}
@@ -1564,6 +1539,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->buffer_views[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->buffer_views[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->buffer_views[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->buffer_views[i].extensions);
 	}
@@ -1580,6 +1556,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->buffers[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->buffers[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->buffers[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->buffers[i].extensions);
 	}
@@ -1624,6 +1601,7 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].extensions_count; ++k)
 			{
 				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].extensions[k].name);
+				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].extensions[k].data);
 			}
 			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].extensions);
 		}
@@ -1639,6 +1617,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->meshes[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->meshes[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->meshes[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->meshes[i].extensions);
 
@@ -1656,11 +1635,13 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size j = 0; j < data->materials[i].pbr_metallic_roughness.base_color_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.base_color_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.base_color_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.base_color_texture.extensions);
 			for (cgltf_size j = 0; j < data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].pbr_metallic_roughness.metallic_roughness_texture.extensions);
 		}
@@ -1669,11 +1650,13 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size j = 0; j < data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.diffuse_texture.extensions);
 			for (cgltf_size j = 0; j < data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].pbr_specular_glossiness.specular_glossiness_texture.extensions);
 		}
@@ -1682,16 +1665,19 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_texture.extensions);
 			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_roughness_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_roughness_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_roughness_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_roughness_texture.extensions);
 			for (cgltf_size j = 0; j < data->materials[i].clearcoat.clearcoat_normal_texture.extensions_count; ++j)
 			{
 				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions[j].name);
+				data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions[j].data);
 			}
 			data->memory.free(data->memory.user_data, data->materials[i].clearcoat.clearcoat_normal_texture.extensions);
 		}
@@ -1699,6 +1685,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->materials[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->materials[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->materials[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->materials[i].extensions);
 	}
@@ -1714,6 +1701,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->images[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->images[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->images[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->images[i].extensions);
 	}
@@ -1726,6 +1714,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->textures[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->textures[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->textures[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->textures[i].extensions);
 	}
@@ -1737,6 +1726,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->samplers[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->samplers[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->samplers[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->samplers[i].extensions);
 	}
@@ -1751,6 +1741,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->skins[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->skins[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->skins[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->skins[i].extensions);
 	}
@@ -1763,6 +1754,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->cameras[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->cameras[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->cameras[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->cameras[i].extensions);
 	}
@@ -1784,6 +1776,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->nodes[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->nodes[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->nodes[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->nodes[i].extensions);
 	}
@@ -1798,6 +1791,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->scenes[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->scenes[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->scenes[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->scenes[i].extensions);
 	}
@@ -1812,6 +1806,7 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size k = 0; k < data->animations[i].samplers[j].extensions_count; ++k)
 			{
 				data->memory.free(data->memory.user_data, data->animations[i].samplers[j].extensions[k].name);
+				data->memory.free(data->memory.user_data, data->animations[i].samplers[j].extensions[k].data);
 			}
 			data->memory.free(data->memory.user_data, data->animations[i].samplers[j].extensions);
 		}
@@ -1822,6 +1817,7 @@ void cgltf_free(cgltf_data* data)
 			for (cgltf_size k = 0; k < data->animations[i].channels[j].extensions_count; ++k)
 			{
 				data->memory.free(data->memory.user_data, data->animations[i].channels[j].extensions[k].name);
+				data->memory.free(data->memory.user_data, data->animations[i].channels[j].extensions[k].data);
 			}
 			data->memory.free(data->memory.user_data, data->animations[i].channels[j].extensions);
 		}
@@ -1830,6 +1826,7 @@ void cgltf_free(cgltf_data* data)
 		for (cgltf_size j = 0; j < data->animations[i].extensions_count; ++j)
 		{
 			data->memory.free(data->memory.user_data, data->animations[i].extensions[j].name);
+			data->memory.free(data->memory.user_data, data->animations[i].extensions[j].data);
 		}
 		data->memory.free(data->memory.user_data, data->animations[i].extensions);
 	}
@@ -1839,6 +1836,7 @@ void cgltf_free(cgltf_data* data)
 	for (cgltf_size i = 0; i < data->data_extensions_count; ++i)
 	{
 		data->memory.free(data->memory.user_data, data->data_extensions[i].name);
+		data->memory.free(data->memory.user_data, data->data_extensions[i].data);
 	}
 	data->memory.free(data->memory.user_data, data->data_extensions);
 
@@ -2480,8 +2478,11 @@ static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmnto
 	out_extension->name[name_length] = 0;
 	i++;
 
-	out_extension->start_offset = tokens[i].start;
-	out_extension->end_offset = tokens[i].end;
+	size_t start = tokens[i].start;
+	size_t size = tokens[i].end - start;
+	out_extension->data = (char*)options->memory.alloc(options->memory.user_data, size + 1);
+	strncpy(out_extension->data, (const char*)json_chunk + start, size);
+	out_extension->data[size] = '\0';
 
 	i = cgltf_skip_json(tokens, i);
 
