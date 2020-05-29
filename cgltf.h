@@ -88,14 +88,6 @@
  * into the provided buffer. If `dest` is NULL, the length of the data is written into
  * `dest_size`. You can then parse this data using your own JSON parser
  * or, if you've included the cgltf implementation using the integrated JSMN JSON parser.
- *
- * `cgltf_result cgltf_copy_extension_json(const cgltf_data* data, const cgltf_extension* extension,
- * char* dest, cgltf_size* dest_size)` allows users to retrieve the JSON data for extension that
- * hasn't been processed by cgltf. The `cgltf_extension` struct stores name of extension and the
- * offsets of the start and end of the extension JSON data as it appears in the complete glTF JSON
- * data. This function copies the extension data into the provided buffer. If `dest` is NULL,
- * the length of the data is written into `dest_size`. You can then parse this data using your own
- * JSON parser or, if you've included the cgltf implementation using the integrated JSMN JSON parser.
  */
 #ifndef CGLTF_H_INCLUDED__
 #define CGLTF_H_INCLUDED__
