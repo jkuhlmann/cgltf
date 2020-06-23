@@ -2384,6 +2384,10 @@ static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmnto
 
 	cgltf_size name_length = tokens[i].end - tokens[i].start;
 	out_extension->name = (char*)options->memory.alloc(options->memory.user_data, name_length + 1);
+	if (!out_extension->name)
+	{
+		return CGLTF_ERROR_NOMEM;
+	}
 	strncpy(out_extension->name, (const char*)json_chunk + tokens[i].start, name_length);
 	out_extension->name[name_length] = 0;
 	i++;
@@ -2391,6 +2395,10 @@ static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmnto
 	size_t start = tokens[i].start;
 	size_t size = tokens[i].end - start;
 	out_extension->data = (char*)options->memory.alloc(options->memory.user_data, size + 1);
+	if (!out_extension->data)
+	{
+		return CGLTF_ERROR_NOMEM;
+	}
 	strncpy(out_extension->data, (const char*)json_chunk + start, size);
 	out_extension->data[size] = '\0';
 
@@ -2412,6 +2420,11 @@ static int cgltf_parse_json_unprocessed_extensions(cgltf_options* options, jsmnt
 	int extensions_size = tokens[i].size;
 	*out_extensions_count = 0;
 	*out_extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
+
+	if (!*out_extensions)
+	{
+		return CGLTF_ERROR_NOMEM;
+	}
 
 	++i;
 
@@ -2528,6 +2541,11 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 			int extensions_size = tokens[i].size;
 			out_prim->extensions_count = 0;
 			out_prim->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
+
+			if (!out_prim->extensions)
+			{
+				return CGLTF_ERROR_NOMEM;
+			}
 
 			++i;
 			for (int k = 0; k < extensions_size; ++k)
@@ -3053,6 +3071,11 @@ static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const
 			out_texture_view->extensions_count = 0;
 			out_texture_view->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
+			if (!out_texture_view->extensions)
+			{
+				return CGLTF_ERROR_NOMEM;
+			}
+
 			++i;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -3502,6 +3525,11 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 			++i;
 			out_material->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 			out_material->extensions_count= 0;
+
+			if (!out_material->extensions)
+			{
+				return CGLTF_ERROR_NOMEM;
+			}
 
 			for (int k = 0; k < extensions_size; ++k)
 			{
@@ -4288,6 +4316,11 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 			out_node->extensions_count= 0;
 			out_node->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
+			if (!out_node->extensions)
+			{
+				return CGLTF_ERROR_NOMEM;
+			}
+
 			++i;
 
 			for (int k = 0; k < extensions_size; ++k)
@@ -4883,6 +4916,11 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 			int extensions_size = tokens[i].size;
 			out_data->data_extensions_count = 0;
 			out_data->data_extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
+
+			if (!out_data->data_extensions)
+			{
+				return CGLTF_ERROR_NOMEM;
+			}
 
 			++i;
 
