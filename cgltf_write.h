@@ -1084,6 +1084,8 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 		cgltf_write_line(context, "]");
 	}
 
+	cgltf_write_extras(context, &data->extras);
+
 	CGLTF_SPRINTF("\n}\n");
 
 	// snprintf does not include the null terminator in its return value, so be sure to include it
