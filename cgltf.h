@@ -1,7 +1,7 @@
 /**
  * cgltf - a single-file glTF 2.0 parser written in C99.
  *
- * Version: 1.7
+ * Version: 1.8
  *
  * Website: https://github.com/jkuhlmann/cgltf
  *
@@ -727,6 +727,8 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 #include <stdlib.h> /* For malloc, free, atoi, atof */
 #endif
 
+#ifndef CGLTF_EXTERNAL_JSMN
+
 /* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
 #define JSMN_PARENT_LINKS
 
@@ -772,6 +774,8 @@ static int jsmn_parse(jsmn_parser *parser, const char *js, size_t len, jsmntok_t
 /*
  * -- jsmn.h end --
  */
+
+#endif /* #ifndef CGLTF_EXTERNAL_JSMN */
 
 
 static const cgltf_size GlbHeaderSize = 12;
@@ -5065,7 +5069,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	jsmn_init(&parser);
 
-	int token_count = jsmn_parse(&parser, (const char*)json_chunk, size, tokens, options->json_token_count);
+	int token_count = jsmn_parse(&parser, (const char*)json_chunk, size, tokens, (unsigned int)options->json_token_count);
 
 	if (token_count <= 0)
 	{
@@ -5271,6 +5275,8 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 
 	return 0;
 }
+
+#ifndef CGLTF_EXTERNAL_JSMN
 
 /*
  * -- jsmn.c start --
@@ -5612,6 +5618,8 @@ static void jsmn_init(jsmn_parser *parser) {
 /*
  * -- jsmn.c end --
  */
+
+#endif /* #ifndef CGLTF_EXTERNAL_JSMN */
 
 #endif /* #ifdef CGLTF_IMPLEMENTATION */
 

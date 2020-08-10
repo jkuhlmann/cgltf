@@ -55,6 +55,7 @@ if __name__ == "__main__":
     collect_files("glTF-Sample-Models/2.0/", ".glb", "test_conversion")
     collect_files("glTF-Sample-Models/2.0/", ".gltf", "test_conversion")
     collect_files("glTF-Sample-Models/2.0/", ".gltf", "test_write")
+    collect_files("glTF-Sample-Models/2.0/", ".gltf", "test_external_jsmn")
 
     result = os.system(get_executable_path("test_math"))
     if result != 0:
