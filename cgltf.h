@@ -403,6 +403,11 @@ typedef struct cgltf_transmission
 	cgltf_float transmission_factor;
 } cgltf_transmission;
 
+typedef struct cgltf_ior
+{
+	cgltf_float ior;
+} cgltf_ior;
+
 typedef struct cgltf_material
 {
 	char* name;
@@ -410,9 +415,11 @@ typedef struct cgltf_material
 	cgltf_bool has_pbr_specular_glossiness;
 	cgltf_bool has_clearcoat;
 	cgltf_bool has_transmission;
+	cgltf_bool has_ior;
 	cgltf_pbr_metallic_roughness pbr_metallic_roughness;
 	cgltf_pbr_specular_glossiness pbr_specular_glossiness;
 	cgltf_clearcoat clearcoat;
+	cgltf_ior ior;
 	cgltf_transmission transmission;
 	cgltf_texture_view normal_texture;
 	cgltf_texture_view occlusion_texture;
@@ -3275,6 +3282,36 @@ static int cgltf_parse_json_clearcoat(cgltf_options* options, jsmntok_t const* t
 	return i;
 }
 
+static int cgltf_parse_json_ior(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_ior* out_ior)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "ior") == 0)
+		{
+			++i;
+			out_ior->ior = cgltf_json_to_float(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_transmission(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_transmission* out_transmission)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -3595,6 +3632,11 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				{
 					out_material->has_clearcoat = 1;
 					i = cgltf_parse_json_clearcoat(options, tokens, i + 1, json_chunk, &out_material->clearcoat);
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_ior") == 0)
+				{
+					out_material->has_ior = 1;
+					i = cgltf_parse_json_ior(tokens, i + 1, json_chunk, &out_material->ior);
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_transmission") == 0)
 				{
