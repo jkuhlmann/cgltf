@@ -106,6 +106,7 @@ cgltf also supports some glTF extensions:
 - KHR_materials_clearcoat
 - KHR_materials_ior
 - KHR_materials_pbrSpecularGlossiness
+- KHR_materials_specular
 - KHR_materials_transmission
 - KHR_materials_unlit
 - KHR_texture_transform
