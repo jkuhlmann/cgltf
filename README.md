@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/jkuhlmann/cgltf.svg?branch=master)](https://travis-ci.org/jkuhlmann/cgltf)
 
-Used in: [bgfx](https://github.com/bkaradzic/bgfx), [Filament](https://github.com/google/filament), [meshoptimizer](https://github.com/zeux/meshoptimizer), [raylib](https://github.com/raysan5/raylib), and more!
+Used in: [bgfx](https://github.com/bkaradzic/bgfx), [Filament](https://github.com/google/filament), [gltfpack](https://github.com/zeux/meshoptimizer/tree/master/gltf), [raylib](https://github.com/raysan5/raylib), and more!
 
 ## Usage: Loading
 Loading from file:
