@@ -575,6 +575,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			const cgltf_specular* params = &material->specular;
 			cgltf_write_line(context, "\"KHR_materials_specular\": {");
 			CGLTF_WRITE_TEXTURE_INFO("specularTexture", params->specular_texture);
+			CGLTF_WRITE_TEXTURE_INFO("specularColorTexture", params->specular_color_texture);
 			cgltf_write_floatprop(context, "specularFactor", params->specular_factor, 1.0f);
 			if (cgltf_check_floatarray(params->specular_color_factor, 3, 1.0f))
 			{
