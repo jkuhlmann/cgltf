@@ -2668,6 +2668,8 @@ static int cgltf_parse_json_material_mapping_data(cgltf_options* options, jsmnto
 
 		for (int k = 0; k < obj_size; ++k)
 		{
+			CGLTF_CHECK_KEY(tokens[i]);
+
 			if (cgltf_json_strcmp(tokens + i, json_chunk, "material") == 0)
 			{
 				++i;
@@ -2688,6 +2690,11 @@ static int cgltf_parse_json_material_mapping_data(cgltf_options* options, jsmnto
 			else
 			{
 				i = cgltf_skip_json(tokens, i+1);
+			}
+
+			if (i < 0)
+			{
+				return i;
 			}
 		}
 
@@ -2754,6 +2761,11 @@ static int cgltf_parse_json_material_mappings(cgltf_options* options, jsmntok_t 
 		else
 		{
 			i = cgltf_skip_json(tokens, i+1);
+		}
+
+		if (i < 0)
+		{
+			return i;
 		}
 	}
 
