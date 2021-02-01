@@ -79,6 +79,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MATERIALS_SPECULAR     (1 << 7)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_TRANSMISSION (1 << 8)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_SHEEN        (1 << 9)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_VOLUME       (1 << 10)
 
 typedef struct {
 	char* buffer;
@@ -518,6 +519,11 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_TRANSMISSION;
 	}
 
+	if (material->has_volume)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_VOLUME;
+	}
+
 	if (material->has_ior)
 	{
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_IOR;
@@ -549,7 +555,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		cgltf_write_line(context, "}");
 	}
 
-	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen)
+	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen || material->has_volume)
 	{
 		cgltf_write_line(context, "\"extensions\": {");
 		if (material->has_clearcoat)
@@ -588,6 +594,24 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			cgltf_write_line(context, "\"KHR_materials_transmission\": {");
 			CGLTF_WRITE_TEXTURE_INFO("transmissionTexture", params->transmission_texture);
 			cgltf_write_floatprop(context, "transmissionFactor", params->transmission_factor, 0.0f);
+			cgltf_write_line(context, "}");
+		}
+		if (material->has_volume)
+		{
+			const cgltf_volume* params = &material->volume;
+			cgltf_write_line(context, "\"KHR_materials_volume\": {");
+			CGLTF_WRITE_TEXTURE_INFO("thicknessTexture", params->thickness_texture);
+			cgltf_write_floatprop(context, "thicknessFactor", params->thickness_factor, 0.0f);
+			if (cgltf_check_floatarray(params->attenuation_color, 3, 1.0f))
+			{
+				cgltf_write_floatarrayprop(context, "attenuationColor", params->attenuation_color, 3);
+			}
+			// attenuation_distance of 0.0 isn't allowed (it implies this material is opaque);
+			// assuming a value of 0.0 implies the default value of Infinity.
+			if (params->attenuation_distance > 0.0) 
+			{
+				cgltf_write_floatprop(context, "attenuationDistance", params->attenuation_distance, 0.0f);
+			}
 			cgltf_write_line(context, "}");
 		}
 		if (material->has_sheen)
