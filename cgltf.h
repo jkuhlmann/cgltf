@@ -3793,6 +3793,7 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 	out_material->pbr_specular_glossiness.glossiness_factor = 1.0f;
 
 	cgltf_fill_float_array(out_material->volume.attenuation_color, 3, 1.0f);
+	out_material->volume.attenuation_distance = FLT_MAX;
 
 	out_material->alpha_cutoff = 0.5f;
 

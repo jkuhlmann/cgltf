@@ -606,11 +606,9 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			{
 				cgltf_write_floatarrayprop(context, "attenuationColor", params->attenuation_color, 3);
 			}
-			// attenuation_distance of 0.0 isn't allowed (it implies this material is opaque);
-			// assuming a value of 0.0 implies the default value of Infinity.
-			if (params->attenuation_distance > 0.0) 
+			if (params->attenuation_distance < FLT_MAX) 
 			{
-				cgltf_write_floatprop(context, "attenuationDistance", params->attenuation_distance, 0.0f);
+				cgltf_write_floatprop(context, "attenuationDistance", params->attenuation_distance, FLT_MAX);
 			}
 			cgltf_write_line(context, "}");
 		}
