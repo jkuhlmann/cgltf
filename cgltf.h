@@ -2643,6 +2643,11 @@ static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmnt
 			out_draco_mesh_compression->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
+
+		if (i < 0)
+		{
+			return i;
+		}
 	}
 
 	return i;
