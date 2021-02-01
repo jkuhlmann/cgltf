@@ -111,6 +111,7 @@ cgltf also supports some glTF extensions:
 - KHR_materials_specular
 - KHR_materials_transmission
 - KHR_materials_unlit
+- KHR_materials_variants
 - KHR_texture_transform
 
 cgltf does **not** yet support unlisted extensions. However, unlisted extensions can be accessed via "extensions" member on objects.
