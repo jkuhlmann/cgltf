@@ -68,6 +68,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <float.h>
 
 #define CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM      (1 << 0)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_UNLIT        (1 << 1)
