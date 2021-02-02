@@ -2655,6 +2655,7 @@ static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmnt
 
 static int cgltf_parse_json_material_mapping_data(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_material_mapping* out_mappings, cgltf_size* offset)
 {
+	(void)options;
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 
 	int size = tokens[i].size;
