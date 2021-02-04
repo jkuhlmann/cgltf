@@ -2687,7 +2687,7 @@ static int cgltf_parse_json_material_mapping_data(cgltf_options* options, jsmnto
 
 		int material = -1;
 		int variants_tok = -1;
-		cgltf_extras extras = {};
+		cgltf_extras extras = {0};
 
 		for (int k = 0; k < obj_size; ++k)
 		{
