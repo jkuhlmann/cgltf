@@ -554,8 +554,10 @@ typedef struct cgltf_skin {
 } cgltf_skin;
 
 typedef struct cgltf_camera_perspective {
+	cgltf_bool has_aspect_ratio;
 	cgltf_float aspect_ratio;
 	cgltf_float yfov;
+	cgltf_bool has_zfar;
 	cgltf_float zfar;
 	cgltf_float znear;
 	cgltf_extras extras;
@@ -4647,6 +4649,7 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "aspectRatio") == 0)
 				{
 					++i;
+					out_camera->data.perspective.has_aspect_ratio = 1;
 					out_camera->data.perspective.aspect_ratio = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}
@@ -4659,6 +4662,7 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "zfar") == 0)
 				{
 					++i;
+					out_camera->data.perspective.has_zfar = 1;
 					out_camera->data.perspective.zfar = cgltf_json_to_float(tokens + i, json_chunk);
 					++i;
 				}

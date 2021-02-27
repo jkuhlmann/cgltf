@@ -944,9 +944,17 @@ static void cgltf_write_camera(cgltf_write_context* context, const cgltf_camera*
 	else if (camera->type == cgltf_camera_type_perspective)
 	{
 		cgltf_write_line(context, "\"perspective\": {");
-		cgltf_write_floatprop(context, "aspectRatio", camera->data.perspective.aspect_ratio, -1.0f);
+
+		if (camera->data.perspective.has_aspect_ratio) {
+			cgltf_write_floatprop(context, "aspectRatio", camera->data.perspective.aspect_ratio, -1.0f);
+		}
+
 		cgltf_write_floatprop(context, "yfov", camera->data.perspective.yfov, -1.0f);
-		cgltf_write_floatprop(context, "zfar", camera->data.perspective.zfar, -1.0f);
+
+		if (camera->data.perspective.has_zfar) {
+			cgltf_write_floatprop(context, "zfar", camera->data.perspective.zfar, -1.0f);
+		}
+
 		cgltf_write_floatprop(context, "znear", camera->data.perspective.znear, -1.0f);
 		cgltf_write_extras(context, &camera->data.perspective.extras);
 		cgltf_write_line(context, "}");
