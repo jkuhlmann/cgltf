@@ -24,7 +24,7 @@
  *
  * `cgltf_options` is the struct passed to `cgltf_parse()` to control
  * parts of the parsing process. You can use it to force the file type
- * and provide memory allocation as well as file operation callbacks. 
+ * and provide memory allocation as well as file operation callbacks.
  * Should be zero-initialized to trigger default behavior.
  *
  * `cgltf_data` is the struct allocated and filled by `cgltf_parse()`.
@@ -42,8 +42,8 @@
  *
  * `cgltf_result cgltf_load_buffer_base64(const cgltf_options* options,
  * cgltf_size size, const char* base64, void** out_data)` decodes
- * base64-encoded data content. Used internally by `cgltf_load_buffers()`
- * and may be useful if you're not dealing with normal files.
+ * base64-encoded data content. Used internally by `cgltf_load_buffers()`.
+ * This is useful when decoding data URIs in images.
  *
  * `cgltf_result cgltf_parse_file(const cgltf_options* options, const
  * char* path, cgltf_data** out_data)` can be used to open the given
