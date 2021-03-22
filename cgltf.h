@@ -1,7 +1,7 @@
 /**
  * cgltf - a single-file glTF 2.0 parser written in C99.
  *
- * Version: 1.9
+ * Version: 1.10
  *
  * Website: https://github.com/jkuhlmann/cgltf
  *
