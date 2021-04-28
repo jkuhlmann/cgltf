@@ -3914,10 +3914,10 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 					out_texture->has_basisu = 1;
 					++i;
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
-					int size = tokens[i].size;
+					int num_properties = tokens[i].size;
 					++i;
 
-					for (int t = 0; t < size; ++t)
+					for (int t = 0; t < num_properties; ++t)
 					{
 						CGLTF_CHECK_KEY(tokens[i]);
 
