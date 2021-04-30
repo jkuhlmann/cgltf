@@ -3927,6 +3927,10 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 							out_texture->basisu_image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
 							++i;
 						}
+						else
+						{
+							i = cgltf_skip_json(tokens, i + 1);
+						}
 					}
 				}
 				else
