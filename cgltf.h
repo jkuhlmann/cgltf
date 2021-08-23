@@ -816,7 +816,7 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 #include <limits.h> /* For UINT_MAX etc */
 #include <float.h>  /* For FLT_MAX */
 
-#if !defined(CGLTF_MALLOC) || !defined(CGLTF_FREE) || !defined(CGLTF_ATOI) || !defined(CGLTF_ATOF)
+#if !defined(CGLTF_MALLOC) || !defined(CGLTF_FREE) || !defined(CGLTF_ATOI) || !defined(CGLTF_ATOF) || !defined(CGLTF_ATOLL)
 #include <stdlib.h> /* For malloc, free, atoi, atof */
 #endif
 
@@ -885,6 +885,9 @@ static const uint32_t GlbMagicBinChunk = 0x004E4942;
 #endif
 #ifndef CGLTF_ATOF
 #define CGLTF_ATOF(str) atof(str)
+#endif
+#ifndef CGLTF_ATOLL
+#define CGLTF_ATOLL(str) atoll(str)
 #endif
 #ifndef CGLTF_VALIDATE_ENABLE_ASSERTS
 #define CGLTF_VALIDATE_ENABLE_ASSERTS 0
@@ -2262,6 +2265,7 @@ cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size 
 #define CGLTF_ERROR_LEGACY -3
 
 #define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return CGLTF_ERROR_JSON; }
+#define CGLTF_CHECK_TOKTYPE_RETTYPE(tok_, type_, ret_) if ((tok_).type != (type_)) { return (ret_)CGLTF_ERROR_JSON; }
 #define CGLTF_CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return CGLTF_ERROR_JSON; } /* checking size for 0 verifies that a value follows the key */
 
 #define CGLTF_PTRINDEX(type, idx) (type*)((cgltf_size)idx + 1)
@@ -2284,6 +2288,16 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return CGLTF_ATOI(tmp);
+}
+
+static cgltf_size cgltf_json_to_size(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
+	CGLTF_CHECK_TOKTYPE_RETTYPE(*tok, JSMN_PRIMITIVE, cgltf_size);
+	char tmp[128];
+	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
+	strncpy(tmp, (const char*)json_chunk + tok->start, size);
+	tmp[size] = 0;
+	return (cgltf_size)CGLTF_ATOLL(tmp);
 }
 
 static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
@@ -3027,7 +3041,7 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteOffset") == 0)
 				{
 					++i;
-					out_sparse->indices_byte_offset = cgltf_json_to_int(tokens + i, json_chunk);
+					out_sparse->indices_byte_offset = cgltf_json_to_size(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "componentType") == 0)
@@ -3076,7 +3090,7 @@ static int cgltf_parse_json_accessor_sparse(cgltf_options* options, jsmntok_t co
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteOffset") == 0)
 				{
 					++i;
-					out_sparse->values_byte_offset = cgltf_json_to_int(tokens + i, json_chunk);
+					out_sparse->values_byte_offset = cgltf_json_to_size(tokens + i, json_chunk);
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
@@ -3145,7 +3159,7 @@ static int cgltf_parse_json_accessor(cgltf_options* options, jsmntok_t const* to
 		{
 			++i;
 			out_accessor->offset =
-					cgltf_json_to_int(tokens+i, json_chunk);
+					cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "componentType") == 0)
@@ -4250,19 +4264,19 @@ static int cgltf_parse_json_meshopt_compression(cgltf_options* options, jsmntok_
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteOffset") == 0)
 		{
 			++i;
-			out_meshopt_compression->offset = cgltf_json_to_int(tokens+i, json_chunk);
+			out_meshopt_compression->offset = cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteLength") == 0)
 		{
 			++i;
-			out_meshopt_compression->size = cgltf_json_to_int(tokens+i, json_chunk);
+			out_meshopt_compression->size = cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteStride") == 0)
 		{
 			++i;
-			out_meshopt_compression->stride = cgltf_json_to_int(tokens+i, json_chunk);
+			out_meshopt_compression->stride = cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "count") == 0)
@@ -4348,21 +4362,21 @@ static int cgltf_parse_json_buffer_view(cgltf_options* options, jsmntok_t const*
 		{
 			++i;
 			out_buffer_view->offset =
-					cgltf_json_to_int(tokens+i, json_chunk);
+					cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteLength") == 0)
 		{
 			++i;
 			out_buffer_view->size =
-					cgltf_json_to_int(tokens+i, json_chunk);
+					cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "byteStride") == 0)
 		{
 			++i;
 			out_buffer_view->stride =
-					cgltf_json_to_int(tokens+i, json_chunk);
+					cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "target") == 0)
@@ -4480,7 +4494,7 @@ static int cgltf_parse_json_buffer(cgltf_options* options, jsmntok_t const* toke
 		{
 			++i;
 			out_buffer->size =
-					cgltf_json_to_int(tokens+i, json_chunk);
+					cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "uri") == 0)
