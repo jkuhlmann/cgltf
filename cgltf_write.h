@@ -676,7 +676,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			CGLTF_WRITE_TEXTURE_INFO("specularGlossinessTexture", params->specular_glossiness_texture);
 			if (cgltf_check_floatarray(params->diffuse_factor, 4, 1.0f))
 			{
-				cgltf_write_floatarrayprop(context, "dffuseFactor", params->diffuse_factor, 4);
+				cgltf_write_floatarrayprop(context, "diffuseFactor", params->diffuse_factor, 4);
 			}
 			if (cgltf_check_floatarray(params->specular_factor, 3, 1.0f))
 			{
