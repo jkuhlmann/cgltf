@@ -534,7 +534,10 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 {
 	cgltf_write_line(context, "{");
 	cgltf_write_strprop(context, "name", material->name);
-	cgltf_write_floatprop(context, "alphaCutoff", material->alpha_cutoff, 0.5f);
+	if (material->alpha_mode == cgltf_alpha_mode_mask)
+	{
+		cgltf_write_floatprop(context, "alphaCutoff", material->alpha_cutoff, 0.5f);
+	}
 	cgltf_write_boolprop_optional(context, "doubleSided", material->double_sided, false);
 	// cgltf_write_boolprop_optional(context, "unlit", material->unlit, false);
 
