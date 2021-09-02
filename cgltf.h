@@ -1126,8 +1126,8 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 		return cgltf_result_invalid_options;
 	}
 
-	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
 	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
+	void (*file_release)(const struct cgltf_memory_options*, const struct cgltf_file_options*, void* data) = options->file.release ? options->file.release : cgltf_default_file_release;
 
 	void* file_data = NULL;
 	cgltf_size file_size = 0;
@@ -1141,7 +1141,7 @@ cgltf_result cgltf_parse_file(const cgltf_options* options, const char* path, cg
 
 	if (result != cgltf_result_success)
 	{
-		memory_free(options->memory.user_data, file_data);
+		file_release(&options->memory, &options->file, file_data);
 		return result;
 	}
 
