@@ -64,6 +64,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 #ifdef CGLTF_WRITE_IMPLEMENTATION
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -109,6 +110,7 @@ typedef struct {
 #endif
 
 #define CGLTF_SPRINTF(...) { \
+		assert(context->cursor || (!context->cursor && context->remaining == 0)); \
 		context->tmp = snprintf ( context->cursor, context->remaining, __VA_ARGS__ ); \
 		context->chars_written += context->tmp; \
 		if (context->cursor) { \
@@ -117,6 +119,7 @@ typedef struct {
 		} }
 
 #define CGLTF_SNPRINTF(length, ...) { \
+		assert(context->cursor || (!context->cursor && context->remaining == 0)); \
 		context->tmp = snprintf ( context->cursor, CGLTF_MIN(length + 1, context->remaining), __VA_ARGS__ ); \
 		context->chars_written += length; \
 		if (context->cursor) { \
