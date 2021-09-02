@@ -6395,7 +6395,7 @@ static void jsmn_init(jsmn_parser *parser) {
 
 /* cgltf is distributed under MIT license:
  *
- * Copyright (c) 2018 Johannes Kuhlmann
+ * Copyright (c) 2018-2021 Johannes Kuhlmann
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
