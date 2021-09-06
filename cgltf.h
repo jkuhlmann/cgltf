@@ -391,6 +391,7 @@ typedef struct cgltf_texture_transform
 	cgltf_float offset[2];
 	cgltf_float rotation;
 	cgltf_float scale[2];
+	cgltf_bool has_texcoord;
 	cgltf_int texcoord;
 } cgltf_texture_transform;
 
@@ -3305,6 +3306,7 @@ static int cgltf_parse_json_texture_transform(jsmntok_t const* tokens, int i, co
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "texCoord") == 0)
 		{
 			++i;
+			out_texture_transform->has_texcoord = 1;
 			out_texture_transform->texcoord = cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
