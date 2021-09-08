@@ -391,7 +391,10 @@ static void cgltf_write_texture_transform(cgltf_write_context* context, const cg
 	{
 		cgltf_write_floatarrayprop(context, "scale", transform->scale, 2);
 	}
-	cgltf_write_intprop(context, "texCoord", transform->texcoord, 0);
+	if (transform->has_texcoord)
+	{
+		cgltf_write_intprop(context, "texCoord", transform->texcoord, -1);
+	}
 	cgltf_write_line(context, "}");
 	cgltf_write_line(context, "}");
 }
