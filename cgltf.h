@@ -1274,60 +1274,60 @@ void cgltf_decode_string(char* string)
 		return;
 	}
 	char* write = string;
-    char* last = string;
+	char* last = string;
 
-    while (read)
+	while (read)
 	{
-        // Copy characters since last escaped sequence
+		// Copy characters since last escaped sequence
 		cgltf_size written = read - last;
 		strncpy(write, last, written);
 		write += written;
 
-        // jsmn already checked that all escape sequences are valid
+		// jsmn already checked that all escape sequences are valid
 		++read;
-        switch (*read++)
+		switch (*read++)
 		{
-            case '\"': *write++ = '\"'; break;
-            case '/':  *write++ = '/';  break;
-            case '\\': *write++ = '\\'; break;
-            case 'b':  *write++ = '\b'; break;
-            case 'f':  *write++ = '\f'; break;
-            case 'r':  *write++ = '\r'; break;
-            case 'n':  *write++ = '\n'; break;
-            case 't':  *write++ = '\t'; break;
-            case 'u':
+		case '\"': *write++ = '\"'; break;
+		case '/':  *write++ = '/';  break;
+		case '\\': *write++ = '\\'; break;
+		case 'b':  *write++ = '\b'; break;
+		case 'f':  *write++ = '\f'; break;
+		case 'r':  *write++ = '\r'; break;
+		case 'n':  *write++ = '\n'; break;
+		case 't':  *write++ = '\t'; break;
+		case 'u':
+		{
+			// UCS-2 codepoint \uXXXX to UTF-8
+			int character = 0;
+			for (cgltf_size i = 0; i < 4; ++i)
 			{
-				// UCS-2 codepoint \uXXXX to UTF-8
-                int character = 0;
-                for (cgltf_size i = 0; i < 4; ++i)
-				{
-                    character = (character << 4) + cgltf_unhex(*read++);
-                }
+				character = (character << 4) + cgltf_unhex(*read++);
+			}
 
-				if (character <= 0x7F)
-				{
-					*write++ = character & 0xFF;
-				}
-				else if (character <= 0x7FF)
-				{
-					*write++ = 0xC0 | (character >> 6) & 0xFF;
-					*write++ = 0x80 | (character & 0x3F);
-				}
-				else
-				{
-					*write++ = 0xE0 | (character >> 12) & 0xFF;
-					*write++ = 0x80 | ((character >> 6) & 0x3F);
-					*write++ = 0x80 | (character & 0x3F);
-				}
-                break;
-            }
-            default:
-				break;
-        }
+			if (character <= 0x7F)
+			{
+				*write++ = character & 0xFF;
+			}
+			else if (character <= 0x7FF)
+			{
+				*write++ = 0xC0 | (character >> 6) & 0xFF;
+				*write++ = 0x80 | (character & 0x3F);
+			}
+			else
+			{
+				*write++ = 0xE0 | (character >> 12) & 0xFF;
+				*write++ = 0x80 | ((character >> 6) & 0x3F);
+				*write++ = 0x80 | (character & 0x3F);
+			}
+			break;
+		}
+		default:
+			break;
+		}
 
-        last = read;
-        read = strchr(read, '\\');
-    }
+		last = read;
+		read = strchr(read, '\\');
+	}
 
 	strcpy(write, last);
 }
