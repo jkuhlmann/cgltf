@@ -1310,12 +1310,12 @@ void cgltf_decode_string(char* string)
 			}
 			else if (character <= 0x7FF)
 			{
-				*write++ = 0xC0 | (character >> 6) & 0xFF;
+				*write++ = 0xC0 | ((character >> 6) & 0xFF);
 				*write++ = 0x80 | (character & 0x3F);
 			}
 			else
 			{
-				*write++ = 0xE0 | (character >> 12) & 0xFF;
+				*write++ = 0xE0 | ((character >> 12) & 0xFF);
 				*write++ = 0x80 | ((character >> 6) & 0x3F);
 				*write++ = 0x80 | (character & 0x3F);
 			}
