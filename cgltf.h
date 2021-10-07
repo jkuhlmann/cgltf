@@ -1276,15 +1276,19 @@ void cgltf_decode_string(char* string)
 	char* write = string;
 	char* last = string;
 
-	while (read)
+	for (;;)
 	{
 		// Copy characters since last escaped sequence
 		cgltf_size written = read - last;
-		strncpy(write, last, written);
+		memmove(write, last, written);
 		write += written;
 
+		if (*read++ == 0)
+		{
+			break;
+		}
+
 		// jsmn already checked that all escape sequences are valid
-		++read;
 		switch (*read++)
 		{
 		case '\"': *write++ = '\"'; break;
@@ -1326,10 +1330,10 @@ void cgltf_decode_string(char* string)
 		}
 
 		last = read;
-		read = strchr(read, '\\');
+		read += strcspn(read, "\\");
 	}
 
-	strcpy(write, last);
+	*write = 0;
 }
 
 void cgltf_decode_uri(char* uri)
