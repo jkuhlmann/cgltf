@@ -3844,6 +3844,39 @@ static int cgltf_parse_json_sheen(cgltf_options* options, jsmntok_t const* token
 	return i;
 }
 
+static int cgltf_parse_json_emissive_strength(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_float* out_emissive_strength)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	// Default
+	*out_emissive_strength = 1.f;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "emissiveStrength") == 0)
+		{
+			++i;
+			*out_emissive_strength = cgltf_json_to_float(tokens + i, json_chunk);
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_image* out_image)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -4217,6 +4250,14 @@ static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* to
 				{
 					out_material->has_sheen = 1;
 					i = cgltf_parse_json_sheen(options, tokens, i + 1, json_chunk, &out_material->sheen);
+				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "KHR_materials_emissive_strength") == 0)
+				{
+					cgltf_float emissive_strength = 1.f;
+					i = cgltf_parse_json_emissive_strength(tokens, i + 1, json_chunk, &emissive_strength);
+					out_material->emissive_factor[0] *= emissive_strength;
+					out_material->emissive_factor[1] *= emissive_strength;
+					out_material->emissive_factor[2] *= emissive_strength;
 				}
 				else
 				{
