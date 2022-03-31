@@ -26,8 +26,7 @@ def collect_files(path, type, name):
             if the_file.endswith(type):
                 num_tested = num_tested +1
                 print("### " + name + " " + file_path)
-                is_ascii_path = isascii(file_path)
-                if is_ascii_path:
+                if file_path.isascii():
                     result = os.system("{0} \"{1}\"".format(exe, file_path))
                     print("### Result: " + str(result) + "\n")
                     if result != 0:
