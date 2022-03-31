@@ -12,9 +12,8 @@ def get_executable_path(name):
     else:
         return "build/" + name
 
-def isascii(s):
-    """Check if the characters in string s are in ASCII, U+0-U+7F."""
-    return len(s) == len(s.encode())
+def is_ascii(s):
+    return all(ord(c) < 128 for c in s)
 
 def collect_files(path, type, name):
     global num_tested
@@ -26,7 +25,7 @@ def collect_files(path, type, name):
             if the_file.endswith(type):
                 num_tested = num_tested +1
                 print("### " + name + " " + file_path)
-                if file_path.isascii():
+                if is_ascii(file_path):
                     result = os.system("{0} \"{1}\"".format(exe, file_path))
                     print("### Result: " + str(result) + "\n")
                     if result != 0:
