@@ -531,6 +531,12 @@ typedef struct cgltf_draco_mesh_compression {
 	cgltf_size attributes_count;
 } cgltf_draco_mesh_compression;
 
+typedef struct cgltf_mesh_gpu_instancing {
+	cgltf_buffer_view* buffer_view;
+	cgltf_attribute* attributes;
+	cgltf_size attributes_count;
+} cgltf_mesh_gpu_instancing;
+
 typedef struct cgltf_primitive {
 	cgltf_primitive_type type;
 	cgltf_accessor* indices;
@@ -635,6 +641,8 @@ struct cgltf_node {
 	cgltf_float scale[3];
 	cgltf_float matrix[16];
 	cgltf_extras extras;
+	cgltf_bool has_mesh_gpu_instancing;
+	cgltf_mesh_gpu_instancing mesh_gpu_instancing;
 	cgltf_size extensions_count;
 	cgltf_extension* extensions;
 };
@@ -2713,6 +2721,37 @@ static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmnt
 		{
 			++i;
 			out_draco_mesh_compression->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
+			++i;
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_mesh_gpu_instancing(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_mesh_gpu_instancing* out_mesh_gpu_instancing)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "attributes") == 0)
+		{
+			i = cgltf_parse_json_attribute_list(options, tokens, i + 1, json_chunk, &out_mesh_gpu_instancing->attributes, &out_mesh_gpu_instancing->attributes_count);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "bufferView") == 0)
+		{
+			++i;
+			out_mesh_gpu_instancing->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
 
@@ -5227,6 +5266,11 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 						}
 					}
 				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "EXT_mesh_gpu_instancing") == 0)
+				{
+					out_node->has_mesh_gpu_instancing = 1;
+					i = cgltf_parse_json_mesh_gpu_instancing(options, tokens, i + 1, json_chunk, &out_node->mesh_gpu_instancing);
+				}
 				else
 				{
 					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_node->extensions[out_node->extensions_count++]));
@@ -6154,6 +6198,15 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 		CGLTF_PTRFIXUP(data->nodes[i].skin, data->skins, data->skins_count);
 		CGLTF_PTRFIXUP(data->nodes[i].camera, data->cameras, data->cameras_count);
 		CGLTF_PTRFIXUP(data->nodes[i].light, data->lights, data->lights_count);
+
+		if (data->nodes[i].has_mesh_gpu_instancing)
+		{
+			CGLTF_PTRFIXUP_REQ(data->nodes[i].mesh_gpu_instancing.buffer_view, data->buffer_views, data->buffer_views_count);
+			for (cgltf_size m = 0; m < data->nodes[i].mesh_gpu_instancing.attributes_count; ++m)
+			{
+				CGLTF_PTRFIXUP_REQ(data->nodes[i].mesh_gpu_instancing.attributes[m].data, data->accessors, data->accessors_count);
+			}
+		}
 	}
 
 	for (cgltf_size i = 0; i < data->scenes_count; ++i)
