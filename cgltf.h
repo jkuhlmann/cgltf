@@ -167,6 +167,7 @@ typedef enum cgltf_attribute_type
 	cgltf_attribute_type_color,
 	cgltf_attribute_type_joints,
 	cgltf_attribute_type_weights,
+	cgltf_attribute_type_custom,
 	cgltf_attribute_type_max_enum
 } cgltf_attribute_type;
 
@@ -869,6 +870,10 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 
 #if !defined(CGLTF_MALLOC) || !defined(CGLTF_FREE) || !defined(CGLTF_ATOI) || !defined(CGLTF_ATOF) || !defined(CGLTF_ATOLL)
 #include <stdlib.h> /* For malloc, free, atoi, atof */
+#endif
+
+#if CGLTF_VALIDATE_ENABLE_ASSERTS
+#include <assert.h>
 #endif
 
 /* JSMN_PARENT_LINKS is necessary to make parsing large structures linear in input size */
@@ -1620,6 +1625,8 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 				{
 					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
+					// note: in 3.7.2.1 of the spec it says that custom vertex attributes must not use unsigned int type
+					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->component_type == cgltf_component_type_r_32u && data->meshes[i].primitives[j].attributes[k].type == cgltf_attribute_type_custom, cgltf_result_invalid_gltf);
 				}
 
 				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
@@ -2575,6 +2582,12 @@ static int cgltf_parse_json_string_array(cgltf_options* options, jsmntok_t const
 
 static void cgltf_parse_attribute_type(const char* name, cgltf_attribute_type* out_type, int* out_index)
 {
+	if (*name == '_')
+	{
+		*out_type = cgltf_attribute_type_custom;
+		return;
+	}
+
 	const char* us = strchr(name, '_');
 	size_t len = us ? (size_t)(us - name) : strlen(name);
 
