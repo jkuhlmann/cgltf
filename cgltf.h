@@ -1625,8 +1625,6 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 				{
 					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
-					// note: in 3.7.2.1 of the spec it says that custom vertex attributes must not use unsigned int type
-					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->component_type == cgltf_component_type_r_32u && data->meshes[i].primitives[j].attributes[k].type == cgltf_attribute_type_custom, cgltf_result_invalid_gltf);
 				}
 
 				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
