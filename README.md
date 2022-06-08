@@ -133,7 +133,7 @@ Everyone is welcome to contribute to the library. If you find any problems, you 
 ## Dependencies
 None.
 
-C headers being used by implementation:
+C headers being used by the implementation:
 ```
 #include <stddef.h>
 #include <stdint.h>
@@ -141,6 +141,7 @@ C headers being used by implementation:
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <assert.h> // If asserts are enabled.
 ```
 
 Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserge/jsmn) embedded in its source.
