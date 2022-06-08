@@ -129,8 +129,8 @@ typedef enum cgltf_result
 
 typedef struct cgltf_memory_options
 {
-	void* (*alloc)(void* user, cgltf_size size);
-	void (*free) (void* user, void* ptr);
+	void* (*alloc_func)(void* user, cgltf_size size);
+	void (*free_func) (void* user, void* ptr);
 	void* user_data;
 } cgltf_memory_options;
 
@@ -967,7 +967,7 @@ static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_siz
 	{
 		return NULL;
 	}
-	void* result = options->memory.alloc(options->memory.user_data, element_size * count);
+	void* result = options->memory.alloc_func(options->memory.user_data, element_size * count);
 	if (!result)
 	{
 		return NULL;
@@ -979,8 +979,8 @@ static void* cgltf_calloc(cgltf_options* options, size_t element_size, cgltf_siz
 static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, const char* path, cgltf_size* size, void** data)
 {
 	(void)file_options;
-	void* (*memory_alloc)(void*, cgltf_size) = memory_options->alloc ? memory_options->alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = memory_options->free ? memory_options->free : &cgltf_default_free;
+	void* (*memory_alloc)(void*, cgltf_size) = memory_options->alloc_func ? memory_options->alloc_func : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = memory_options->free_func ? memory_options->free_func : &cgltf_default_free;
 
 	FILE* file = fopen(path, "rb");
 	if (!file)
@@ -1042,7 +1042,7 @@ static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* m
 static void cgltf_default_file_release(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, void* data)
 {
 	(void)file_options;
-	void (*memfree)(void*, void*) = memory_options->free ? memory_options->free : &cgltf_default_free;
+	void (*memfree)(void*, void*) = memory_options->free_func ? memory_options->free_func : &cgltf_default_free;
 	memfree(memory_options->user_data, data);
 }
 
@@ -1061,13 +1061,13 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 	}
 
 	cgltf_options fixed_options = *options;
-	if (fixed_options.memory.alloc == NULL)
+	if (fixed_options.memory.alloc_func == NULL)
 	{
-		fixed_options.memory.alloc = &cgltf_default_alloc;
+		fixed_options.memory.alloc_func = &cgltf_default_alloc;
 	}
-	if (fixed_options.memory.free == NULL)
+	if (fixed_options.memory.free_func == NULL)
 	{
-		fixed_options.memory.free = &cgltf_default_free;
+		fixed_options.memory.free_func = &cgltf_default_free;
 	}
 
 	uint32_t tmp;
@@ -1232,8 +1232,8 @@ static void cgltf_combine_paths(char* path, const char* base, const char* uri)
 
 static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_size size, const char* uri, const char* gltf_path, void** out_data)
 {
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc_func ? options->memory.alloc_func : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory.free_func ? options->memory.free_func : &cgltf_default_free;
 	cgltf_result (*file_read)(const struct cgltf_memory_options*, const struct cgltf_file_options*, const char*, cgltf_size*, void**) = options->file.read ? options->file.read : &cgltf_default_file_read;
 
 	char* path = (char*)memory_alloc(options->memory.user_data, strlen(uri) + strlen(gltf_path) + 1);
@@ -1259,8 +1259,8 @@ static cgltf_result cgltf_load_buffer_file(const cgltf_options* options, cgltf_s
 
 cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data)
 {
-	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc ? options->memory.alloc : &cgltf_default_alloc;
-	void (*memory_free)(void*, void*) = options->memory.free ? options->memory.free : &cgltf_default_free;
+	void* (*memory_alloc)(void*, cgltf_size) = options->memory.alloc_func ? options->memory.alloc_func : &cgltf_default_alloc;
+	void (*memory_free)(void*, void*) = options->memory.free_func ? options->memory.free_func : &cgltf_default_free;
 
 	unsigned char* data = (unsigned char*)memory_alloc(options->memory.user_data, size);
 	if (!data)
@@ -1748,10 +1748,10 @@ void cgltf_free_extensions(cgltf_data* data, cgltf_extension* extensions, cgltf_
 {
 	for (cgltf_size i = 0; i < extensions_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, extensions[i].name);
-		data->memory.free(data->memory.user_data, extensions[i].data);
+		data->memory.free_func(data->memory.user_data, extensions[i].name);
+		data->memory.free_func(data->memory.user_data, extensions[i].data);
 	}
-	data->memory.free(data->memory.user_data, extensions);
+	data->memory.free_func(data->memory.user_data, extensions);
 }
 
 void cgltf_free(cgltf_data* data)
@@ -1763,16 +1763,16 @@ void cgltf_free(cgltf_data* data)
 
 	void (*file_release)(const struct cgltf_memory_options*, const struct cgltf_file_options*, void* data) = data->file.release ? data->file.release : cgltf_default_file_release;
 
-	data->memory.free(data->memory.user_data, data->asset.copyright);
-	data->memory.free(data->memory.user_data, data->asset.generator);
-	data->memory.free(data->memory.user_data, data->asset.version);
-	data->memory.free(data->memory.user_data, data->asset.min_version);
+	data->memory.free_func(data->memory.user_data, data->asset.copyright);
+	data->memory.free_func(data->memory.user_data, data->asset.generator);
+	data->memory.free_func(data->memory.user_data, data->asset.version);
+	data->memory.free_func(data->memory.user_data, data->asset.min_version);
 
 	cgltf_free_extensions(data, data->asset.extensions, data->asset.extensions_count);
 
 	for (cgltf_size i = 0; i < data->accessors_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->accessors[i].name);
+		data->memory.free_func(data->memory.user_data, data->accessors[i].name);
 
 		if(data->accessors[i].is_sparse)
 		{
@@ -1782,20 +1782,20 @@ void cgltf_free(cgltf_data* data)
 		}
 		cgltf_free_extensions(data, data->accessors[i].extensions, data->accessors[i].extensions_count);
 	}
-	data->memory.free(data->memory.user_data, data->accessors);
+	data->memory.free_func(data->memory.user_data, data->accessors);
 
 	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->buffer_views[i].name);
-		data->memory.free(data->memory.user_data, data->buffer_views[i].data);
+		data->memory.free_func(data->memory.user_data, data->buffer_views[i].name);
+		data->memory.free_func(data->memory.user_data, data->buffer_views[i].data);
 
 		cgltf_free_extensions(data, data->buffer_views[i].extensions, data->buffer_views[i].extensions_count);
 	}
-	data->memory.free(data->memory.user_data, data->buffer_views);
+	data->memory.free_func(data->memory.user_data, data->buffer_views);
 
 	for (cgltf_size i = 0; i < data->buffers_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->buffers[i].name);
+		data->memory.free_func(data->memory.user_data, data->buffers[i].name);
 
 		if (data->buffers[i].data_free_method == cgltf_data_free_method_file_release)
 		{
@@ -1803,74 +1803,74 @@ void cgltf_free(cgltf_data* data)
 		}
 		else if (data->buffers[i].data_free_method == cgltf_data_free_method_memory_free)
 		{
-			data->memory.free(data->memory.user_data, data->buffers[i].data);
+			data->memory.free_func(data->memory.user_data, data->buffers[i].data);
 		}
 
-		data->memory.free(data->memory.user_data, data->buffers[i].uri);
+		data->memory.free_func(data->memory.user_data, data->buffers[i].uri);
 
 		cgltf_free_extensions(data, data->buffers[i].extensions, data->buffers[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->buffers);
+	data->memory.free_func(data->memory.user_data, data->buffers);
 
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->meshes[i].name);
+		data->memory.free_func(data->memory.user_data, data->meshes[i].name);
 
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 			{
-				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].attributes[k].name);
+				data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].attributes[k].name);
 			}
 
-			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].attributes);
+			data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].attributes);
 
 			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
 			{
 				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
 				{
-					data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes[m].name);
+					data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes[m].name);
 				}
 
-				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes);
+				data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].targets[k].attributes);
 			}
 
-			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].targets);
+			data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].targets);
 
 			if (data->meshes[i].primitives[j].has_draco_mesh_compression)
 			{
 				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].draco_mesh_compression.attributes_count; ++k)
 				{
-					data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].draco_mesh_compression.attributes[k].name);
+					data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].draco_mesh_compression.attributes[k].name);
 				}
 
-				data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].draco_mesh_compression.attributes);
+				data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].draco_mesh_compression.attributes);
 			}
 
-			data->memory.free(data->memory.user_data, data->meshes[i].primitives[j].mappings);
+			data->memory.free_func(data->memory.user_data, data->meshes[i].primitives[j].mappings);
 
 			cgltf_free_extensions(data, data->meshes[i].primitives[j].extensions, data->meshes[i].primitives[j].extensions_count);
 		}
 
-		data->memory.free(data->memory.user_data, data->meshes[i].primitives);
-		data->memory.free(data->memory.user_data, data->meshes[i].weights);
+		data->memory.free_func(data->memory.user_data, data->meshes[i].primitives);
+		data->memory.free_func(data->memory.user_data, data->meshes[i].weights);
 
 		for (cgltf_size j = 0; j < data->meshes[i].target_names_count; ++j)
 		{
-			data->memory.free(data->memory.user_data, data->meshes[i].target_names[j]);
+			data->memory.free_func(data->memory.user_data, data->meshes[i].target_names[j]);
 		}
 
 		cgltf_free_extensions(data, data->meshes[i].extensions, data->meshes[i].extensions_count);
 
-		data->memory.free(data->memory.user_data, data->meshes[i].target_names);
+		data->memory.free_func(data->memory.user_data, data->meshes[i].target_names);
 	}
 
-	data->memory.free(data->memory.user_data, data->meshes);
+	data->memory.free_func(data->memory.user_data, data->meshes);
 
 	for (cgltf_size i = 0; i < data->materials_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->materials[i].name);
+		data->memory.free_func(data->memory.user_data, data->materials[i].name);
 
 		if(data->materials[i].has_pbr_metallic_roughness)
 		{
@@ -1919,126 +1919,126 @@ void cgltf_free(cgltf_data* data)
 		cgltf_free_extensions(data, data->materials[i].extensions, data->materials[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->materials);
+	data->memory.free_func(data->memory.user_data, data->materials);
 
 	for (cgltf_size i = 0; i < data->images_count; ++i) 
 	{
-		data->memory.free(data->memory.user_data, data->images[i].name);
-		data->memory.free(data->memory.user_data, data->images[i].uri);
-		data->memory.free(data->memory.user_data, data->images[i].mime_type);
+		data->memory.free_func(data->memory.user_data, data->images[i].name);
+		data->memory.free_func(data->memory.user_data, data->images[i].uri);
+		data->memory.free_func(data->memory.user_data, data->images[i].mime_type);
 
 		cgltf_free_extensions(data, data->images[i].extensions, data->images[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->images);
+	data->memory.free_func(data->memory.user_data, data->images);
 
 	for (cgltf_size i = 0; i < data->textures_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->textures[i].name);
+		data->memory.free_func(data->memory.user_data, data->textures[i].name);
 		cgltf_free_extensions(data, data->textures[i].extensions, data->textures[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->textures);
+	data->memory.free_func(data->memory.user_data, data->textures);
 
 	for (cgltf_size i = 0; i < data->samplers_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->samplers[i].name);
+		data->memory.free_func(data->memory.user_data, data->samplers[i].name);
 		cgltf_free_extensions(data, data->samplers[i].extensions, data->samplers[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->samplers);
+	data->memory.free_func(data->memory.user_data, data->samplers);
 
 	for (cgltf_size i = 0; i < data->skins_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->skins[i].name);
-		data->memory.free(data->memory.user_data, data->skins[i].joints);
+		data->memory.free_func(data->memory.user_data, data->skins[i].name);
+		data->memory.free_func(data->memory.user_data, data->skins[i].joints);
 
 		cgltf_free_extensions(data, data->skins[i].extensions, data->skins[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->skins);
+	data->memory.free_func(data->memory.user_data, data->skins);
 
 	for (cgltf_size i = 0; i < data->cameras_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->cameras[i].name);
+		data->memory.free_func(data->memory.user_data, data->cameras[i].name);
 		cgltf_free_extensions(data, data->cameras[i].extensions, data->cameras[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->cameras);
+	data->memory.free_func(data->memory.user_data, data->cameras);
 
 	for (cgltf_size i = 0; i < data->lights_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->lights[i].name);
+		data->memory.free_func(data->memory.user_data, data->lights[i].name);
 	}
 
-	data->memory.free(data->memory.user_data, data->lights);
+	data->memory.free_func(data->memory.user_data, data->lights);
 
 	for (cgltf_size i = 0; i < data->nodes_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->nodes[i].name);
-		data->memory.free(data->memory.user_data, data->nodes[i].children);
-		data->memory.free(data->memory.user_data, data->nodes[i].weights);
+		data->memory.free_func(data->memory.user_data, data->nodes[i].name);
+		data->memory.free_func(data->memory.user_data, data->nodes[i].children);
+		data->memory.free_func(data->memory.user_data, data->nodes[i].weights);
 		cgltf_free_extensions(data, data->nodes[i].extensions, data->nodes[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->nodes);
+	data->memory.free_func(data->memory.user_data, data->nodes);
 
 	for (cgltf_size i = 0; i < data->scenes_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->scenes[i].name);
-		data->memory.free(data->memory.user_data, data->scenes[i].nodes);
+		data->memory.free_func(data->memory.user_data, data->scenes[i].name);
+		data->memory.free_func(data->memory.user_data, data->scenes[i].nodes);
 
 		cgltf_free_extensions(data, data->scenes[i].extensions, data->scenes[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->scenes);
+	data->memory.free_func(data->memory.user_data, data->scenes);
 
 	for (cgltf_size i = 0; i < data->animations_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->animations[i].name);
+		data->memory.free_func(data->memory.user_data, data->animations[i].name);
 		for (cgltf_size j = 0; j <  data->animations[i].samplers_count; ++j)
 		{
 			cgltf_free_extensions(data, data->animations[i].samplers[j].extensions, data->animations[i].samplers[j].extensions_count);
 		}
-		data->memory.free(data->memory.user_data, data->animations[i].samplers);
+		data->memory.free_func(data->memory.user_data, data->animations[i].samplers);
 
 		for (cgltf_size j = 0; j <  data->animations[i].channels_count; ++j)
 		{
 			cgltf_free_extensions(data, data->animations[i].channels[j].extensions, data->animations[i].channels[j].extensions_count);
 		}
-		data->memory.free(data->memory.user_data, data->animations[i].channels);
+		data->memory.free_func(data->memory.user_data, data->animations[i].channels);
 
 		cgltf_free_extensions(data, data->animations[i].extensions, data->animations[i].extensions_count);
 	}
 
-	data->memory.free(data->memory.user_data, data->animations);
+	data->memory.free_func(data->memory.user_data, data->animations);
 
 	for (cgltf_size i = 0; i < data->variants_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->variants[i].name);
+		data->memory.free_func(data->memory.user_data, data->variants[i].name);
 	}
 
-	data->memory.free(data->memory.user_data, data->variants);
+	data->memory.free_func(data->memory.user_data, data->variants);
 
 	cgltf_free_extensions(data, data->data_extensions, data->data_extensions_count);
 
 	for (cgltf_size i = 0; i < data->extensions_used_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->extensions_used[i]);
+		data->memory.free_func(data->memory.user_data, data->extensions_used[i]);
 	}
 
-	data->memory.free(data->memory.user_data, data->extensions_used);
+	data->memory.free_func(data->memory.user_data, data->extensions_used);
 
 	for (cgltf_size i = 0; i < data->extensions_required_count; ++i)
 	{
-		data->memory.free(data->memory.user_data, data->extensions_required[i]);
+		data->memory.free_func(data->memory.user_data, data->extensions_required[i]);
 	}
 
-	data->memory.free(data->memory.user_data, data->extensions_required);
+	data->memory.free_func(data->memory.user_data, data->extensions_required);
 
 	file_release(&data->memory, &data->file, data->file_data);
 
-	data->memory.free(data->memory.user_data, data);
+	data->memory.free_func(data->memory.user_data, data);
 }
 
 void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix)
@@ -2525,7 +2525,7 @@ static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* toke
 		return CGLTF_ERROR_JSON;
 	}
 	int size = tokens[i].end - tokens[i].start;
-	char* result = (char*)options->memory.alloc(options->memory.user_data, size + 1);
+	char* result = (char*)options->memory.alloc_func(options->memory.user_data, size + 1);
 	if (!result)
 	{
 		return CGLTF_ERROR_NOMEM;
@@ -2684,7 +2684,7 @@ static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmnto
 	}
 
 	cgltf_size name_length = tokens[i].end - tokens[i].start;
-	out_extension->name = (char*)options->memory.alloc(options->memory.user_data, name_length + 1);
+	out_extension->name = (char*)options->memory.alloc_func(options->memory.user_data, name_length + 1);
 	if (!out_extension->name)
 	{
 		return CGLTF_ERROR_NOMEM;
@@ -2695,7 +2695,7 @@ static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmnto
 
 	size_t start = tokens[i].start;
 	size_t size = tokens[i].end - start;
-	out_extension->data = (char*)options->memory.alloc(options->memory.user_data, size + 1);
+	out_extension->data = (char*)options->memory.alloc_func(options->memory.user_data, size + 1);
 	if (!out_extension->data)
 	{
 		return CGLTF_ERROR_NOMEM;
@@ -6107,7 +6107,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 		options->json_token_count = token_count;
 	}
 
-	jsmntok_t* tokens = (jsmntok_t*)options->memory.alloc(options->memory.user_data, sizeof(jsmntok_t) * (options->json_token_count + 1));
+	jsmntok_t* tokens = (jsmntok_t*)options->memory.alloc_func(options->memory.user_data, sizeof(jsmntok_t) * (options->json_token_count + 1));
 
 	if (!tokens)
 	{
@@ -6120,7 +6120,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	if (token_count <= 0)
 	{
-		options->memory.free(options->memory.user_data, tokens);
+		options->memory.free_func(options->memory.user_data, tokens);
 		return cgltf_result_invalid_json;
 	}
 
@@ -6128,11 +6128,11 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 	// for invalid JSON inputs this makes sure we don't perform out of bound reads of token data
 	tokens[token_count].type = JSMN_UNDEFINED;
 
-	cgltf_data* data = (cgltf_data*)options->memory.alloc(options->memory.user_data, sizeof(cgltf_data));
+	cgltf_data* data = (cgltf_data*)options->memory.alloc_func(options->memory.user_data, sizeof(cgltf_data));
 
 	if (!data)
 	{
-		options->memory.free(options->memory.user_data, tokens);
+		options->memory.free_func(options->memory.user_data, tokens);
 		return cgltf_result_out_of_memory;
 	}
 
@@ -6142,7 +6142,7 @@ cgltf_result cgltf_parse_json(cgltf_options* options, const uint8_t* json_chunk,
 
 	int i = cgltf_parse_json_root(options, tokens, 0, json_chunk, data);
 
-	options->memory.free(options->memory.user_data, tokens);
+	options->memory.free_func(options->memory.user_data, tokens);
 
 	if (i < 0)
 	{
