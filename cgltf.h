@@ -4048,6 +4048,10 @@ static int cgltf_parse_json_diffuse_transmission(cgltf_options* options, jsmntok
 	int size = tokens[i].size;
 	++i;
 
+	// Defaults
+	cgltf_fill_float_array(out_diff_transmission->diffuse_transmission_color_factor, 3, 1.0f);
+	out_diff_transmission->diffuse_transmission_factor = 0.f;
+
 	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
