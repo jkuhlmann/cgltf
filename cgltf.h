@@ -99,6 +99,7 @@ extern "C" {
 #endif
 
 typedef size_t cgltf_size;
+typedef long long int cgltf_ssize;
 typedef float cgltf_float;
 typedef int cgltf_int;
 typedef unsigned int cgltf_uint;
@@ -2121,7 +2122,7 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 	}
 }
 
-static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_type component_type)
+static cgltf_ssize cgltf_component_read_integer(const void* in, cgltf_component_type component_type)
 {
 	switch (component_type)
 	{
@@ -2132,9 +2133,26 @@ static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_typ
 		case cgltf_component_type_r_32u:
 			return *((const uint32_t*) in);
 		case cgltf_component_type_r_32f:
-			return (cgltf_size)*((const float*) in);
+			return (cgltf_ssize)*((const float*) in);
 		case cgltf_component_type_r_8:
 			return *((const int8_t*) in);
+		case cgltf_component_type_r_8u:
+			return *((const uint8_t*) in);
+		default:
+			return 0;
+	}
+}
+
+static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_type component_type)
+{
+	switch (component_type)
+	{
+		case cgltf_component_type_r_16u:
+			return *((const uint16_t*) in);
+		case cgltf_component_type_r_32u:
+			return *((const uint32_t*) in);
+		case cgltf_component_type_r_32f:
+			return (cgltf_size)*((const float*) in);
 		case cgltf_component_type_r_8u:
 			return *((const uint8_t*) in);
 		default:
@@ -2167,7 +2185,7 @@ static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_ty
 		}
 	}
 
-	return (cgltf_float)cgltf_component_read_index(in, component_type);
+	return (cgltf_float)cgltf_component_read_integer(in, component_type);
 }
 
 static cgltf_size cgltf_component_size(cgltf_component_type component_type);
