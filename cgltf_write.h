@@ -295,6 +295,40 @@ static void cgltf_write_floatarrayprop(cgltf_write_context* context, const char*
 	context->needs_comma = 1;
 }
 
+static const unsigned char base64_table[65] =
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+static void cgltf_write_base64(cgltf_write_context* context, const unsigned char* data, cgltf_size len)
+{
+	for (cgltf_size i = 0; i < len; i += 3) {
+		unsigned int buffer = 0;
+		cgltf_size n = 0;
+
+		// After running this loop, n contains the number of buffered plain characters (1 <= n <= 3)
+		for (n = 0; n < 3; ++n) {
+			if (i + n >= len) {
+				break;
+			}
+			buffer |= (unsigned int)data[i + n] << (8 * (2 - n));
+		}
+
+		CGLTF_SPRINTF("%c", base64_table[buffer >> 18]);
+		CGLTF_SPRINTF("%c", base64_table[(buffer >> 12) & 0x3f]);
+
+		if (n >= 2) {
+			CGLTF_SPRINTF("%c", base64_table[(buffer >> 6) & 0x3f]);
+		} else {
+			CGLTF_SPRINTF("=");
+		}
+
+		if (n >= 3) {
+			CGLTF_SPRINTF("%c", base64_table[buffer & 0x3f]);
+		} else {
+			CGLTF_SPRINTF("=");
+		}
+	}
+}
+
 static bool cgltf_check_floatarray(const float* vals, int dim, float val) {
 	while (dim--)
 	{
@@ -534,7 +568,16 @@ static void cgltf_write_buffer(cgltf_write_context* context, const cgltf_buffer*
 {
 	cgltf_write_line(context, "{");
 	cgltf_write_strprop(context, "name", buffer->name);
-	cgltf_write_strprop(context, "uri", buffer->uri);
+	if (!buffer->uri && buffer->data && buffer->size > 0) {
+		// if uri is missing (e.g. glb-embbeded), write the data w/ base64 encoding
+		cgltf_write_indent(context);
+		CGLTF_SPRINTF("\"uri\": \"data:application/octet-stream;base64,");
+		cgltf_write_base64(context, (const unsigned char*)buffer->data, buffer->size);
+		CGLTF_SPRINTF("\"");
+		context->needs_comma = 1;
+	} else {
+		cgltf_write_strprop(context, "uri", buffer->uri);
+	}
 	cgltf_write_sizeprop(context, "byteLength", buffer->size, (cgltf_size)-1);
 	cgltf_write_extras(context, &buffer->extras);
 	cgltf_write_line(context, "}");
