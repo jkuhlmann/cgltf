@@ -25,7 +25,7 @@
  * been written. `data` is not deallocated.
  *
  * To write custom JSON into the `extras` field, aggregate all the custom JSON
- * into a single buffer, then set `file_data` to this buffer. By supplying
+ * into a single buffer, then set `json` to this buffer. By supplying
  * start_offset and end_offset values for various objects, you can select a
  * range of characters within the aggregated buffer.
  */
@@ -209,9 +209,9 @@ static void cgltf_write_strprop(cgltf_write_context* context, const char* label,
 static void cgltf_write_extras(cgltf_write_context* context, const cgltf_extras* extras)
 {
 	cgltf_size length = extras->end_offset - extras->start_offset;
-	if (length > 0 && context->data->file_data)
+	if (length > 0 && context->data->json)
 	{
-		char* json_string = ((char*) context->data->file_data) + extras->start_offset;
+		char* json_string = ((char*) context->data->json) + extras->start_offset;
 		cgltf_write_indent(context);
 		CGLTF_SPRINTF("%s", "\"extras\": ");
 		CGLTF_SNPRINTF(length, "%.*s", (int)(extras->end_offset - extras->start_offset), json_string);
