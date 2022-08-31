@@ -1131,7 +1131,7 @@ static void cgltf_write_glb(FILE* file, const void* json_buf, const cgltf_size j
 	fwrite(header, 1, GlbHeaderSize, file);
 
 	// Write a JSON chunk (header & data)
-	uint32_t json_chunk_size = json_size + json_padsize;
+	uint32_t json_chunk_size = (uint32_t)(json_size + json_padsize);
 	memcpy(chunk_header, &json_chunk_size, 4);
 	memcpy(chunk_header + 4, &GlbMagicJsonChunk, 4);
 	fwrite(chunk_header, 1, GlbChunkHeaderSize, file);
@@ -1141,7 +1141,7 @@ static void cgltf_write_glb(FILE* file, const void* json_buf, const cgltf_size j
 
 	if (bin_buf != NULL && bin_size > 0) {
 		// Write a binary chunk (header & data)
-		uint32_t bin_chunk_size = bin_size + bin_padsize;
+		uint32_t bin_chunk_size = (uint32_t)(bin_size + bin_padsize);
 		memcpy(chunk_header, &bin_chunk_size, 4);
 		memcpy(chunk_header + 4, &GlbMagicBinChunk, 4);
 		fwrite(chunk_header, 1, GlbChunkHeaderSize, file);
@@ -1159,7 +1159,7 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 	if (expected != actual) {
 		fprintf(stderr, "Error: expected %zu bytes but wrote %zu bytes.\n", expected, actual);
 	}
-	FILE* file = fopen(path, "wt");
+	FILE* file = fopen(path, "wb");
 	if (!file)
 	{
 		return cgltf_result_file_not_found;
