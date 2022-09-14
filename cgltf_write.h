@@ -626,7 +626,6 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		{
 			cgltf_write_floatarrayprop(context, "baseColorFactor", params->base_color_factor, 4);
 		}
-		cgltf_write_extras(context, &params->extras);
 		cgltf_write_line(context, "}");
 	}
 
