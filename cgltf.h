@@ -4965,19 +4965,6 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 		{
 			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_camera->name);
 		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "type") == 0)
-		{
-			++i;
-			if (cgltf_json_strcmp(tokens + i, json_chunk, "perspective") == 0)
-			{
-				out_camera->type = cgltf_camera_type_perspective;
-			}
-			else if (cgltf_json_strcmp(tokens + i, json_chunk, "orthographic") == 0)
-			{
-				out_camera->type = cgltf_camera_type_orthographic;
-			}
-			++i;
-		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "perspective") == 0)
 		{
 			++i;
@@ -4986,6 +4973,11 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 
 			int data_size = tokens[i].size;
 			++i;
+
+			if (out_camera->type != cgltf_camera_type_invalid)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			out_camera->type = cgltf_camera_type_perspective;
 
@@ -5042,6 +5034,11 @@ static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* toke
 
 			int data_size = tokens[i].size;
 			++i;
+
+			if (out_camera->type != cgltf_camera_type_invalid)
+			{
+				return CGLTF_ERROR_JSON;
+			}
 
 			out_camera->type = cgltf_camera_type_orthographic;
 
