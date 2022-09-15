@@ -1982,6 +1982,17 @@ void cgltf_free(cgltf_data* data)
 		data->memory.free_func(data->memory.user_data, data->nodes[i].name);
 		data->memory.free_func(data->memory.user_data, data->nodes[i].children);
 		data->memory.free_func(data->memory.user_data, data->nodes[i].weights);
+
+		if (data->nodes[i].has_mesh_gpu_instancing)
+		{
+			for (cgltf_size j = 0; j < data->nodes[i].mesh_gpu_instancing.attributes_count; ++j)
+			{
+				data->memory.free_func(data->memory.user_data, data->nodes[i].mesh_gpu_instancing.attributes[j].name);
+			}
+
+			data->memory.free_func(data->memory.user_data, data->nodes[i].mesh_gpu_instancing.attributes);
+		}
+
 		cgltf_free_extensions(data, data->nodes[i].extensions, data->nodes[i].extensions_count);
 	}
 
