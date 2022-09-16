@@ -26,11 +26,6 @@
  * buffer. Returns the number of bytes written to `buffer`, including a null
  * terminator. If buffer is null, returns the number of bytes that would have
  * been written. `data` is not deallocated.
- *
- * To write custom JSON into the `extras` field, aggregate all the custom JSON
- * into a single buffer, then set `json` to this buffer. By supplying
- * start_offset and end_offset values for various objects, you can select a
- * range of characters within the aggregated buffer.
  */
 #ifndef CGLTF_WRITE_H_INCLUDED__
 #define CGLTF_WRITE_H_INCLUDED__
@@ -221,14 +216,23 @@ static void cgltf_write_strprop(cgltf_write_context* context, const char* label,
 
 static void cgltf_write_extras(cgltf_write_context* context, const cgltf_extras* extras)
 {
-	cgltf_size length = extras->end_offset - extras->start_offset;
-	if (length > 0 && context->data->json)
+	if (extras->data)
 	{
-		char* json_string = ((char*) context->data->json) + extras->start_offset;
 		cgltf_write_indent(context);
-		CGLTF_SPRINTF("%s", "\"extras\": ");
-		CGLTF_SNPRINTF(length, "%.*s", (int)(extras->end_offset - extras->start_offset), json_string);
+		CGLTF_SPRINTF("\"extras\": %s", extras->data);
 		context->needs_comma = 1;
+	}
+	else
+	{
+		cgltf_size length = extras->end_offset - extras->start_offset;
+		if (length > 0 && context->data->json)
+		{
+			char* json_string = ((char*) context->data->json) + extras->start_offset;
+			cgltf_write_indent(context);
+			CGLTF_SPRINTF("%s", "\"extras\": ");
+			CGLTF_SNPRINTF(length, "%.*s", (int)(extras->end_offset - extras->start_offset), json_string);
+			context->needs_comma = 1;
+		}
 	}
 }
 
