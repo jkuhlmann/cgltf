@@ -148,7 +148,30 @@ typedef struct {
 		cgltf_write_line(context, "\"" label "\": {"); \
 		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
 		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
+		if (info.has_transform) { \
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
+			cgltf_write_texture_transform(context, &info.transform); \
+		} \
+		cgltf_write_extras(context, &info.extras); \
+		cgltf_write_line(context, "}"); }
+
+#define CGLTF_WRITE_NORMAL_TEXTURE_INFO(label, info) if (info.texture) { \
+		cgltf_write_line(context, "\"" label "\": {"); \
+		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
+		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
 		cgltf_write_floatprop(context, "scale", info.scale, 1.0f); \
+		if (info.has_transform) { \
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
+			cgltf_write_texture_transform(context, &info.transform); \
+		} \
+		cgltf_write_extras(context, &info.extras); \
+		cgltf_write_line(context, "}"); }
+
+#define CGLTF_WRITE_OCCLUSION_TEXTURE_INFO(label, info) if (info.texture) { \
+		cgltf_write_line(context, "\"" label "\": {"); \
+		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
+		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
+		cgltf_write_floatprop(context, "strength", info.scale, 1.0f); \
 		if (info.has_transform) { \
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
 			cgltf_write_texture_transform(context, &info.transform); \
@@ -642,7 +665,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			cgltf_write_line(context, "\"KHR_materials_clearcoat\": {");
 			CGLTF_WRITE_TEXTURE_INFO("clearcoatTexture", params->clearcoat_texture);
 			CGLTF_WRITE_TEXTURE_INFO("clearcoatRoughnessTexture", params->clearcoat_roughness_texture);
-			CGLTF_WRITE_TEXTURE_INFO("clearcoatNormalTexture", params->clearcoat_normal_texture);
+			CGLTF_WRITE_NORMAL_TEXTURE_INFO("clearcoatNormalTexture", params->clearcoat_normal_texture);
 			cgltf_write_floatprop(context, "clearcoatFactor", params->clearcoat_factor, 0.0f);
 			cgltf_write_floatprop(context, "clearcoatRoughnessFactor", params->clearcoat_roughness_factor, 0.0f);
 			cgltf_write_line(context, "}");
@@ -747,8 +770,8 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		cgltf_write_line(context, "}");
 	}
 
-	CGLTF_WRITE_TEXTURE_INFO("normalTexture", material->normal_texture);
-	CGLTF_WRITE_TEXTURE_INFO("occlusionTexture", material->occlusion_texture);
+	CGLTF_WRITE_NORMAL_TEXTURE_INFO("normalTexture", material->normal_texture);
+	CGLTF_WRITE_OCCLUSION_TEXTURE_INFO("occlusionTexture", material->occlusion_texture);
 	CGLTF_WRITE_TEXTURE_INFO("emissiveTexture", material->emissive_texture);
 	if (cgltf_check_floatarray(material->emissive_factor, 3, 0.0f))
 	{
