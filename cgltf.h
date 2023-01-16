@@ -904,15 +904,15 @@ enum jsmnerr {
 };
 typedef struct {
 	jsmntype_t type;
-	int start;
-	int end;
+	ptrdiff_t start;
+	ptrdiff_t end;
 	int size;
 #ifdef JSMN_PARENT_LINKS
 	int parent;
 #endif
 } jsmntok_t;
 typedef struct {
-	unsigned int pos; /* offset in the JSON string */
+	size_t pos; /* offset in the JSON string */
 	unsigned int toknext; /* next token to allocate */
 	int toksuper; /* superior token node, e.g parent object or array */
 } jsmn_parser;
@@ -2505,7 +2505,7 @@ static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, co
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_STRING);
 	size_t const str_len = strlen(str);
-	size_t const name_length = tok->end - tok->start;
+	size_t const name_length = (size_t)(tok->end - tok->start);
 	return (str_len == name_length) ? strncmp((const char*)json_chunk + tok->start, str, str_len) : 128;
 }
 
@@ -2513,7 +2513,7 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	char tmp[128];
-	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
+	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return CGLTF_ATOI(tmp);
@@ -2523,7 +2523,7 @@ static cgltf_size cgltf_json_to_size(jsmntok_t const* tok, const uint8_t* json_c
 {
 	CGLTF_CHECK_TOKTYPE_RETTYPE(*tok, JSMN_PRIMITIVE, cgltf_size);
 	char tmp[128];
-	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
+	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return (cgltf_size)CGLTF_ATOLL(tmp);
@@ -2533,7 +2533,7 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
 	char tmp[128];
-	int size = (cgltf_size)(tok->end - tok->start) < sizeof(tmp) ? tok->end - tok->start : (int)(sizeof(tmp) - 1);
+	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
 	return (cgltf_float)CGLTF_ATOF(tmp);
@@ -2541,7 +2541,7 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 
 static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
-	int size = tok->end - tok->start;
+	int size = (int)(tok->end - tok->start);
 	return size == 4 && memcmp(json_chunk + tok->start, "true", 4) == 0;
 }
 
@@ -2607,7 +2607,7 @@ static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* toke
 	{
 		return CGLTF_ERROR_JSON;
 	}
-	int size = tokens[i].end - tokens[i].start;
+	int size = (int)(tokens[i].end - tokens[i].start);
 	char* result = (char*)options->memory.alloc_func(options->memory.user_data, size + 1);
 	if (!result)
 	{
@@ -6501,7 +6501,7 @@ static jsmntok_t *jsmn_alloc_token(jsmn_parser *parser,
  * Fills token type and boundaries.
  */
 static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
-				int start, int end) {
+				ptrdiff_t start, ptrdiff_t end) {
 	token->type = type;
 	token->start = start;
 	token->end = end;
@@ -6514,7 +6514,7 @@ static void jsmn_fill_token(jsmntok_t *token, jsmntype_t type,
 static int jsmn_parse_primitive(jsmn_parser *parser, const char *js,
 				size_t len, jsmntok_t *tokens, size_t num_tokens) {
 	jsmntok_t *token;
-	int start;
+	ptrdiff_t start;
 
 	start = parser->pos;
 
@@ -6564,7 +6564,7 @@ static int jsmn_parse_string(jsmn_parser *parser, const char *js,
 				 size_t len, jsmntok_t *tokens, size_t num_tokens) {
 	jsmntok_t *token;
 
-	int start = parser->pos;
+	ptrdiff_t start = parser->pos;
 
 	parser->pos++;
 
