@@ -739,6 +739,10 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			cgltf_write_line(context, "\"KHR_materials_anisotropy\": {");
 			const cgltf_anisotropy* params = &material->anisotropy;
 			cgltf_write_floatprop(context, "anisotropyFactor", params->anisotropy_factor, 0.f);
+			if (!params->anisotropy_texture->texture)
+			{
+				cgltf_write_floatarrayprop(context, "anisotropyDirection", params->anisotropy_direction, 2);
+			}
 			CGLTF_WRITE_TEXTURE_INFO("anisotropyTexture", params->anisotropy_texture);
 			cgltf_write_line(context, "}");
 		}
