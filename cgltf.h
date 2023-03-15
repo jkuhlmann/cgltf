@@ -415,6 +415,7 @@ typedef struct cgltf_texture_transform
 typedef struct cgltf_texture_view
 {
 	cgltf_texture* texture;
+	cgltf_int texture_index;
 	cgltf_int texcoord;
 	cgltf_float scale; /* equivalent to strength for occlusion_texture */
 	cgltf_bool has_transform;
@@ -3608,7 +3609,8 @@ static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const
 		if (cgltf_json_strcmp(tokens + i, json_chunk, "index") == 0)
 		{
 			++i;
-			out_texture_view->texture = CGLTF_PTRINDEX(cgltf_texture, cgltf_json_to_int(tokens + i, json_chunk));
+			out_texture_view->texture_index = cgltf_json_to_int(tokens + i, json_chunk);
+			out_texture_view->texture = CGLTF_PTRINDEX(cgltf_texture, out_texture_view->texture_index);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "texCoord") == 0)
