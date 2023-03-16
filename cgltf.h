@@ -566,6 +566,7 @@ typedef struct cgltf_mesh_gpu_instancing {
 
 typedef struct cgltf_primitive {
 	cgltf_primitive_type type;
+	cgltf_int accessor_index;
 	cgltf_accessor* indices;
 	cgltf_material* material;
 	cgltf_attribute* attributes;
@@ -3061,7 +3062,8 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "indices") == 0)
 		{
 			++i;
-			out_prim->indices = CGLTF_PTRINDEX(cgltf_accessor, cgltf_json_to_int(tokens + i, json_chunk));
+			out_prim->accessor_index = cgltf_json_to_int(tokens + i, json_chunk);
+			out_prim->indices = CGLTF_PTRINDEX(cgltf_accessor, out_prim->accessor_index);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "material") == 0)
