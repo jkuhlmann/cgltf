@@ -508,7 +508,7 @@ typedef struct cgltf_iridescence
 typedef struct cgltf_anisotropy
 {
 	cgltf_float anisotropy_strength;
-	cgltf_float anisotropy_direction;
+	cgltf_float anisotropy_rotation;
 	cgltf_texture_view anisotropy_texture;
 } cgltf_anisotropy;
 
@@ -4044,7 +4044,7 @@ static int cgltf_parse_json_anisotropy(cgltf_options* options, jsmntok_t const* 
 
 	// Default
 	out_anisotropy->anisotropy_strength = 0.f;
-	out_anisotropy->anisotropy_direction = 0.f;
+	out_anisotropy->anisotropy_rotation = 0.f;
 
 	for (int j = 0; j < size; ++j)
 	{
@@ -4056,10 +4056,10 @@ static int cgltf_parse_json_anisotropy(cgltf_options* options, jsmntok_t const* 
 			out_anisotropy->anisotropy_strength = cgltf_json_to_float(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "anisotropyDirection") == 0)
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "anisotropyRotation") == 0)
 		{
 			++i;
-			out_anisotropy->anisotropy_direction = cgltf_json_to_float(tokens + i, json_chunk);
+			out_anisotropy->anisotropy_rotation = cgltf_json_to_float(tokens + i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "anisotropyTexture") == 0)
