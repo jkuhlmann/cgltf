@@ -583,6 +583,7 @@ typedef struct cgltf_primitive {
 
 typedef struct cgltf_mesh {
 	char* name;
+	cgltf_int mesh_index;
 	cgltf_primitive* primitives;
 	cgltf_size primitives_count;
 	cgltf_float* weights;
@@ -3259,6 +3260,7 @@ static int cgltf_parse_json_meshes(cgltf_options* options, jsmntok_t const* toke
 
 	for (cgltf_size j = 0; j < out_data->meshes_count; ++j)
 	{
+		out_data->meshes[j].mesh_index = (cgltf_int) j;
 		i = cgltf_parse_json_mesh(options, tokens, i, json_chunk, &out_data->meshes[j]);
 		if (i < 0)
 		{
