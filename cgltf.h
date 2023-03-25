@@ -650,6 +650,7 @@ typedef struct cgltf_light {
 
 struct cgltf_node {
 	char* name;
+	cgltf_int node_index;
 	cgltf_node* parent;
 	cgltf_node** children;
 	cgltf_size children_count;
@@ -5513,6 +5514,7 @@ static int cgltf_parse_json_nodes(cgltf_options* options, jsmntok_t const* token
 
 	for (cgltf_size j = 0; j < out_data->nodes_count; ++j)
 	{
+		out_data->nodes[j].node_index = (cgltf_int) j;
 		i = cgltf_parse_json_node(options, tokens, i, json_chunk, &out_data->nodes[j]);
 		if (i < 0)
 		{
