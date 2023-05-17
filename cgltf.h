@@ -1948,6 +1948,10 @@ void cgltf_free(cgltf_data* data)
 			cgltf_free_texture_view(data, &data->materials[i].iridescence.iridescence_texture);
 			cgltf_free_texture_view(data, &data->materials[i].iridescence.iridescence_thickness_texture);
 		}
+		if (data->materials[i].has_anisotropy)
+		{
+			cgltf_free_texture_view(data, &data->materials[i].anisotropy.anisotropy_texture);
+		}
 
 		cgltf_free_texture_view(data, &data->materials[i].normal_texture);
 		cgltf_free_texture_view(data, &data->materials[i].occlusion_texture);
@@ -4143,9 +4147,6 @@ static int cgltf_parse_json_anisotropy(cgltf_options* options, jsmntok_t const* 
 	int size = tokens[i].size;
 	++i;
 
-	// Default
-	out_anisotropy->anisotropy_strength = 0.f;
-	out_anisotropy->anisotropy_rotation = 0.f;
 
 	for (int j = 0; j < size; ++j)
 	{
