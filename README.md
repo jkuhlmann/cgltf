@@ -114,6 +114,7 @@ cgltf also supports some glTF extensions:
 - KHR_materials_unlit
 - KHR_materials_variants
 - KHR_materials_volume
+- KHR_materials_anisotropy
 - KHR_texture_basisu (requires a library like [Binomial Basisu](https://github.com/BinomialLLC/basis_universal) for transcoding to native compressed texture)
 - KHR_texture_transform
 
