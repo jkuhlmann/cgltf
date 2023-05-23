@@ -992,7 +992,6 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 
 		cgltf_write_line(context, "\"EXT_mesh_gpu_instancing\": {");
 		{
-			CGLTF_WRITE_IDXPROP("bufferView", node->mesh_gpu_instancing.buffer_view, context->data->buffer_views);
 			cgltf_write_line(context, "\"attributes\": {");
 			{
 				for (cgltf_size i = 0; i < node->mesh_gpu_instancing.attributes_count; ++i)
