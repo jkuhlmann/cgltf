@@ -854,22 +854,22 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 /* this function is deprecated and will be removed in the future; use cgltf_extras::data instead */
 cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size);
 
-cgltf_size cgltf_get_mesh_index(const cgltf_data* data, const cgltf_mesh* object);
-cgltf_size cgltf_get_material_index(const cgltf_data* data, const cgltf_material* object);
-cgltf_size cgltf_get_accessor_index(const cgltf_data* data, const cgltf_accessor* object);
-cgltf_size cgltf_get_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object);
-cgltf_size cgltf_get_buffer_index(const cgltf_data* data, const cgltf_buffer* object);
-cgltf_size cgltf_get_image_index(const cgltf_data* data, const cgltf_image* object);
-cgltf_size cgltf_get_texture_index(const cgltf_data* data, const cgltf_texture* object);
-cgltf_size cgltf_get_sampler_index(const cgltf_data* data, const cgltf_sampler* object);
-cgltf_size cgltf_get_skin_index(const cgltf_data* data, const cgltf_skin* object);
-cgltf_size cgltf_get_camera_index(const cgltf_data* data, const cgltf_camera* object);
-cgltf_size cgltf_get_light_index(const cgltf_data* data, const cgltf_light* object);
-cgltf_size cgltf_get_node_index(const cgltf_data* data, const cgltf_node* object);
-cgltf_size cgltf_get_scene_index(const cgltf_data* data, const cgltf_scene* object);
-cgltf_size cgltf_get_animation_index(const cgltf_data* data, const cgltf_animation* object);
-cgltf_size cgltf_get_animation_sampler_index(const cgltf_animation* animation, const cgltf_animation_sampler* object);
-cgltf_size cgltf_get_animation_channel_index(const cgltf_animation* animation, const cgltf_animation_channel* object);
+cgltf_size cgltf_mesh_index(const cgltf_data* data, const cgltf_mesh* object);
+cgltf_size cgltf_material_index(const cgltf_data* data, const cgltf_material* object);
+cgltf_size cgltf_accessor_index(const cgltf_data* data, const cgltf_accessor* object);
+cgltf_size cgltf_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object);
+cgltf_size cgltf_buffer_index(const cgltf_data* data, const cgltf_buffer* object);
+cgltf_size cgltf_image_index(const cgltf_data* data, const cgltf_image* object);
+cgltf_size cgltf_texture_index(const cgltf_data* data, const cgltf_texture* object);
+cgltf_size cgltf_sampler_index(const cgltf_data* data, const cgltf_sampler* object);
+cgltf_size cgltf_skin_index(const cgltf_data* data, const cgltf_skin* object);
+cgltf_size cgltf_camera_index(const cgltf_data* data, const cgltf_camera* object);
+cgltf_size cgltf_light_index(const cgltf_data* data, const cgltf_light* object);
+cgltf_size cgltf_node_index(const cgltf_data* data, const cgltf_node* object);
+cgltf_size cgltf_scene_index(const cgltf_data* data, const cgltf_scene* object);
+cgltf_size cgltf_animation_index(const cgltf_data* data, const cgltf_animation* object);
+cgltf_size cgltf_animation_sampler_index(const cgltf_animation* animation, const cgltf_animation_sampler* object);
+cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const cgltf_animation_channel* object);
 
 #ifdef __cplusplus
 }
@@ -2514,97 +2514,97 @@ cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size 
 	return cgltf_component_read_index(element, accessor->component_type);
 }
 
-cgltf_size cgltf_get_mesh_index(const cgltf_data* data, const cgltf_mesh* object)
+cgltf_size cgltf_mesh_index(const cgltf_data* data, const cgltf_mesh* object)
 {
 	assert(object && (cgltf_size)(object - data->meshes) < data->meshes_count);
 	return (cgltf_size)(object - data->meshes);
 }
 
-cgltf_size cgltf_get_material_index(const cgltf_data* data, const cgltf_material* object)
+cgltf_size cgltf_material_index(const cgltf_data* data, const cgltf_material* object)
 {
 	assert(object && (cgltf_size)(object - data->materials) < data->materials_count);
 	return (cgltf_size)(object - data->materials);
 }
 
-cgltf_size cgltf_get_accessor_index(const cgltf_data* data, const cgltf_accessor* object)
+cgltf_size cgltf_accessor_index(const cgltf_data* data, const cgltf_accessor* object)
 {
 	assert(object && (cgltf_size)(object - data->accessors) < data->accessors_count);
 	return (cgltf_size)(object - data->accessors);
 }
 
-cgltf_size cgltf_get_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object)
+cgltf_size cgltf_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object)
 {
 	assert(object && (cgltf_size)(object - data->buffer_views) < data->buffer_views_count);
 	return (cgltf_size)(object - data->buffer_views);
 }
 
-cgltf_size cgltf_get_buffer_index(const cgltf_data* data, const cgltf_buffer* object)
+cgltf_size cgltf_buffer_index(const cgltf_data* data, const cgltf_buffer* object)
 {
 	assert(object && (cgltf_size)(object - data->buffers) < data->buffers_count);
 	return (cgltf_size)(object - data->buffers);
 }
 
-cgltf_size cgltf_get_image_index(const cgltf_data* data, const cgltf_image* object)
+cgltf_size cgltf_image_index(const cgltf_data* data, const cgltf_image* object)
 {
 	assert(object && (cgltf_size)(object - data->images) < data->images_count);
 	return (cgltf_size)(object - data->images);
 }
 
-cgltf_size cgltf_get_texture_index(const cgltf_data* data, const cgltf_texture* object)
+cgltf_size cgltf_texture_index(const cgltf_data* data, const cgltf_texture* object)
 {
 	assert(object && (cgltf_size)(object - data->textures) < data->textures_count);
 	return (cgltf_size)(object - data->textures);
 }
 
-cgltf_size cgltf_get_sampler_index(const cgltf_data* data, const cgltf_sampler* object)
+cgltf_size cgltf_sampler_index(const cgltf_data* data, const cgltf_sampler* object)
 {
 	assert(object && (cgltf_size)(object - data->samplers) < data->samplers_count);
 	return (cgltf_size)(object - data->samplers);
 }
 
-cgltf_size cgltf_get_skin_index(const cgltf_data* data, const cgltf_skin* object)
+cgltf_size cgltf_skin_index(const cgltf_data* data, const cgltf_skin* object)
 {
 	assert(object && (cgltf_size)(object - data->skins) < data->skins_count);
 	return (cgltf_size)(object - data->skins);
 }
 
-cgltf_size cgltf_get_camera_index(const cgltf_data* data, const cgltf_camera* object)
+cgltf_size cgltf_camera_index(const cgltf_data* data, const cgltf_camera* object)
 {
 	assert(object && (cgltf_size)(object - data->cameras) < data->cameras_count);
 	return (cgltf_size)(object - data->cameras);
 }
 
-cgltf_size cgltf_get_light_index(const cgltf_data* data, const cgltf_light* object)
+cgltf_size cgltf_light_index(const cgltf_data* data, const cgltf_light* object)
 {
 	assert(object && (cgltf_size)(object - data->lights) < data->lights_count);
 	return (cgltf_size)(object - data->lights);
 }
 
-cgltf_size cgltf_get_node_index(const cgltf_data* data, const cgltf_node* object)
+cgltf_size cgltf_node_index(const cgltf_data* data, const cgltf_node* object)
 {
 	assert(object && (cgltf_size)(object - data->nodes) < data->nodes_count);
 	return (cgltf_size)(object - data->nodes);
 }
 
-cgltf_size cgltf_get_scene_index(const cgltf_data* data, const cgltf_scene* object)
+cgltf_size cgltf_scene_index(const cgltf_data* data, const cgltf_scene* object)
 {
 	assert(object && (cgltf_size)(object - data->scenes) < data->scenes_count);
 	return (cgltf_size)(object - data->scenes);
 }
 
-cgltf_size cgltf_get_animation_index(const cgltf_data* data, const cgltf_animation* object)
+cgltf_size cgltf_animation_index(const cgltf_data* data, const cgltf_animation* object)
 {
 	assert(object && (cgltf_size)(object - data->animations) < data->animations_count);
 	return (cgltf_size)(object - data->animations);
 }
 
-cgltf_size cgltf_get_animation_sampler_index(const cgltf_animation* animation, const cgltf_animation_sampler* object)
+cgltf_size cgltf_animation_sampler_index(const cgltf_animation* animation, const cgltf_animation_sampler* object)
 {
 	assert(object && (cgltf_size)(object - animation->samplers) < animation->samplers_count);
 	return (cgltf_size)(object - animation->samplers);
 }
 
-cgltf_size cgltf_get_animation_channel_index(const cgltf_animation* animation, const cgltf_animation_channel* object)
+cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const cgltf_animation_channel* object)
 {
 	assert(object && (cgltf_size)(object - animation->channels) < animation->channels_count);
 	return (cgltf_size)(object - animation->channels);
