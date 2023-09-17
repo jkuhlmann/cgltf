@@ -63,6 +63,11 @@
  * By passing null for the output pointer, users can find out how many floats are required in the
  * output buffer.
  *
+ * `cgltf_accessor_unpack_indices` reads in the index data from an accessor. Assumes that
+ * `cgltf_load_buffers` has already been called. By passing null for the output pointer, users can
+ * find out how many indices are required in the output buffer. Returns 0 if the accessor is
+ * sparse.
+ *
  * `cgltf_num_components` is a tiny utility that tells you the dimensionality of
  * a certain accessor type. This can be used before `cgltf_accessor_unpack_floats` to help allocate
  * the necessary amount of memory. `cgltf_component_size` and `cgltf_calc_size` exist for 
@@ -2629,7 +2634,7 @@ cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const
 	return (cgltf_size)(object - animation->channels);
 }
 
-cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_uint* out, cgltf_size index_count)
+cgltf_size cgltf_accessor_unpack_indices_(const cgltf_accessor* accessor, void* out, cgltf_size out_component_size, cgltf_size index_count)
 {
 	if (out == NULL)
 	{
@@ -2637,12 +2642,17 @@ cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_u
 	}
 
 	index_count = accessor->count < index_count ? accessor->count : index_count;
+	cgltf_size index_component_size = cgltf_component_size(accessor->component_type);
 
 	if (accessor->is_sparse)
 	{
 		return 0;
 	}
 	if (accessor->buffer_view == NULL)
+	{
+		return 0;
+	}
+	if (index_component_size > out_component_size)
 	{
 		return 0;
 	}
@@ -2653,21 +2663,26 @@ cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_u
 	}
 	element += accessor->offset;
 
-	if (accessor->component_type == cgltf_component_type_r_32u && accessor->stride == sizeof(cgltf_uint))
+	if (index_component_size == out_component_size && accessor->stride == out_component_size)
 	{
-		memcpy(out, element, index_count * sizeof(cgltf_uint));
+		memcpy(out, element, index_count * index_component_size);
 	}
 	else
 	{
-		cgltf_uint* dest = out;
-
-		for (cgltf_size index = 0; index < index_count; index++, dest++, element += accessor->stride)
+		uint8_t* dest = (uint8_t*)out;
+		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
 		{
-			*dest = (cgltf_uint)cgltf_component_read_index(element, accessor->component_type);
+			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
+			memcpy(dest, &index_data, index_component_size);
 		}
 	}
 
 	return index_count;
+}
+
+cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_uint* out, cgltf_size index_count)
+{
+	return cgltf_accessor_unpack_indices_(accessor, out, sizeof(cgltf_uint), index_count);
 }
 
 #define CGLTF_ERROR_JSON -1
