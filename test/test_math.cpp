@@ -9,13 +9,13 @@ static void transform(const cgltf_float matrix[16], const cgltf_float source[4],
     target[3] = matrix[3] * source[0] + matrix[7] * source[1] + matrix[11] * source[2] + matrix[15] * source[3];
 }
 
-static void set(cgltf_float target[3], float x, float y, float z) {
+static void set(cgltf_float target[3], cgltf_float x, cgltf_float y, cgltf_float z) {
     target[0] = x;
     target[1] = y;
     target[2] = z;
 }
 
-static void check(cgltf_float target[3], float x, float y, float z) {
+static void check(cgltf_float target[3], cgltf_float x, cgltf_float y, cgltf_float z) {
     if (target[0] != x || target[1] != y || target[2] != z) {
         fprintf(stderr, "Mismatch detected.\n");
         exit(1);

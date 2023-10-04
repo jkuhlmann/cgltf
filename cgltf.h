@@ -98,7 +98,11 @@ extern "C" {
 
 typedef size_t cgltf_size;
 typedef long long int cgltf_ssize;
+#ifdef GLTF_DOUBLE_PRECISION
+typedef double cgltf_float;
+#else
 typedef float cgltf_float;
+#endif
 typedef int cgltf_int;
 typedef unsigned int cgltf_uint;
 typedef int cgltf_bool;
@@ -2141,22 +2145,22 @@ void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix)
 
 	if (node->has_matrix)
 	{
-		memcpy(lm, node->matrix, sizeof(float) * 16);
+		memcpy(lm, node->matrix, sizeof(cgltf_float) * 16);
 	}
 	else
 	{
-		float tx = node->translation[0];
-		float ty = node->translation[1];
-		float tz = node->translation[2];
+		cgltf_float tx = node->translation[0];
+		cgltf_float ty = node->translation[1];
+		cgltf_float tz = node->translation[2];
 
-		float qx = node->rotation[0];
-		float qy = node->rotation[1];
-		float qz = node->rotation[2];
-		float qw = node->rotation[3];
+		cgltf_float qx = node->rotation[0];
+		cgltf_float qy = node->rotation[1];
+		cgltf_float qz = node->rotation[2];
+		cgltf_float qw = node->rotation[3];
 
-		float sx = node->scale[0];
-		float sy = node->scale[1];
-		float sz = node->scale[2];
+		cgltf_float sx = node->scale[0];
+		cgltf_float sy = node->scale[1];
+		cgltf_float sz = node->scale[2];
 
 		lm[0] = (1 - 2 * qy*qy - 2 * qz*qz) * sx;
 		lm[1] = (2 * qx*qy + 2 * qz*qw) * sx;
@@ -2189,18 +2193,18 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 
 	while (parent)
 	{
-		float pm[16];
+		cgltf_float pm[16];
 		cgltf_node_transform_local(parent, pm);
 
 		for (int i = 0; i < 4; ++i)
 		{
-			float l0 = lm[i * 4 + 0];
-			float l1 = lm[i * 4 + 1];
-			float l2 = lm[i * 4 + 2];
+			cgltf_float l0 = lm[i * 4 + 0];
+			cgltf_float l1 = lm[i * 4 + 1];
+			cgltf_float l2 = lm[i * 4 + 2];
 
-			float r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
-			float r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
-			float r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
+			cgltf_float r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
+			cgltf_float r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
+			cgltf_float r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
 
 			lm[i * 4 + 0] = r0;
 			lm[i * 4 + 1] = r1;
@@ -2434,7 +2438,7 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 		for (cgltf_size reader_index = 0; reader_index < sparse->count; reader_index++, index_data += index_stride, reader_head += accessor->stride)
 		{
 			size_t writer_index = cgltf_component_read_index(index_data, sparse->indices_component_type);
-			float* writer_head = out + writer_index * floats_per_element;
+			cgltf_float* writer_head = out + writer_index * floats_per_element;
 
 			if (!cgltf_element_read_float(reader_head, accessor->type, accessor->component_type, accessor->normalized, writer_head, floats_per_element))
 			{
@@ -2756,7 +2760,7 @@ static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 	return i;
 }
 
-static void cgltf_fill_float_array(float* out_array, int size, float value)
+static void cgltf_fill_float_array(cgltf_float* out_array, int size, cgltf_float value)
 {
 	for (int j = 0; j < size; ++j)
 	{
@@ -2764,7 +2768,7 @@ static void cgltf_fill_float_array(float* out_array, int size, float value)
 	}
 }
 
-static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, float* out_array, int size)
+static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_float* out_array, int size)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 	if (tokens[i].size != size)

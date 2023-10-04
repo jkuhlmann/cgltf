@@ -8,7 +8,7 @@
 
 static bool is_near(cgltf_float a, cgltf_float b)
 {
-	return std::abs(a - b) < 10 * std::numeric_limits<cgltf_float>::min();
+	return std::abs((float)a - (float)b) < 10 * std::numeric_limits<float>::min();
 }
 
 int main(int argc, char** argv)
@@ -49,6 +49,7 @@ int main(int argc, char** argv)
 			cgltf_float* dense = (cgltf_float*) malloc(nfloats * sizeof(cgltf_float));
 			if (cgltf_accessor_unpack_floats(blob, dense, nfloats) < nfloats) {
 				printf("Unable to completely unpack a sparse accessor.\n");
+				cgltf_free(data);
 				return -1;
 			}
 			free(dense);
@@ -56,8 +57,8 @@ int main(int argc, char** argv)
 		}
 		if (blob->has_max && blob->has_min)
 		{
-			cgltf_float min0 = std::numeric_limits<float>::max();
-			cgltf_float max0 = std::numeric_limits<float>::lowest();
+			cgltf_float min0 = std::numeric_limits<cgltf_float>::max();
+			cgltf_float max0 = std::numeric_limits<cgltf_float>::lowest();
 			for (cgltf_size index = 0; index < blob->count; index++)
 			{
 				cgltf_accessor_read_float(blob, index, element_float, 16);
@@ -67,6 +68,7 @@ int main(int argc, char** argv)
 			if (!is_near(min0, blob->min[0]) || !is_near(max0, blob->max[0]))
 			{
 				printf("Computed [%f, %f] but expected [%f, %f]\n", min0, max0, blob->min[0], blob->max[0]);
+				cgltf_free(data);
 				return -1;
 			}
 		}
@@ -83,6 +85,7 @@ int main(int argc, char** argv)
 			if ( min0 != (unsigned int) blob->min[0] || max0 != (unsigned int) blob->max[0] )
 			{
 				printf( "Computed [%u, %u] but expected [%u, %u]\n", min0, max0, (unsigned int) blob->min[0], (unsigned int) blob->max[0] );
+				cgltf_free(data);
 				return -1;
 			}
 		}

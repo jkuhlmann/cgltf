@@ -39,7 +39,10 @@ if __name__ == "__main__":
     if not os.path.exists("build/"):
         os.makedirs("build/")
     os.chdir("build/")
-    os.system("cmake ..")
+    if '--double-precision' in sys.argv:
+        os.system("cmake .. -DCGLTF_DOUBLE_PRECISION=ON")
+    else:
+        os.system("cmake ..")
     if os.system("cmake --build .") != 0:
         print("Unable to build.")
         exit(1)

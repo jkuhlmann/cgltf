@@ -336,7 +336,7 @@ static void cgltf_write_floatarrayprop(cgltf_write_context* context, const char*
 	context->needs_comma = 1;
 }
 
-static bool cgltf_check_floatarray(const float* vals, int dim, float val) {
+static bool cgltf_check_floatarray(const cgltf_float* vals, int dim, cgltf_float val) {
 	while (dim--)
 	{
 		if (vals[dim] != val)

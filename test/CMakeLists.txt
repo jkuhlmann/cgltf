@@ -1,5 +1,10 @@
 cmake_minimum_required( VERSION 2.8 )
 
+option(CGLTF_DOUBLE_PRECISION "Double Precision" OFF)
+if(CGLTF_DOUBLE_PRECISION)
+    add_definitions(-DCGLTF_DOUBLE_PRECISION)
+endif()
+
 include_directories( ${CMAKE_CURRENT_SOURCE_DIR} )
 
 set( EXE_NAME cgltf_test )
