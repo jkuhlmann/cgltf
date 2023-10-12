@@ -104,11 +104,20 @@ typedef struct {
 
 #define CGLTF_MIN(a, b) (a < b ? a : b)
 
+#ifdef CGLTF_DOUBLE_PRECISION
+#ifdef DBL_DECIMAL_DIG
+    // DBL_DECIMAL_DIG is C11
+    #define CGLTF_DECIMAL_DIG (DBL_DECIMAL_DIG)
+#else
+    #define CGLTF_DECIMAL_DIG 17
+#endif
+#else
 #ifdef FLT_DECIMAL_DIG
 	// FLT_DECIMAL_DIG is C11
 	#define CGLTF_DECIMAL_DIG (FLT_DECIMAL_DIG)
 #else
 	#define CGLTF_DECIMAL_DIG 9
+#endif
 #endif
 
 #define CGLTF_SPRINTF(...) { \
@@ -287,7 +296,7 @@ static void cgltf_write_sizeprop(cgltf_write_context* context, const char* label
 	}
 }
 
-static void cgltf_write_floatprop(cgltf_write_context* context, const char* label, float val, float def)
+static void cgltf_write_floatprop(cgltf_write_context* context, const char* label, cgltf_float val, cgltf_float def)
 {
 	if (val != def)
 	{
@@ -336,7 +345,7 @@ static void cgltf_write_floatarrayprop(cgltf_write_context* context, const char*
 	context->needs_comma = 1;
 }
 
-static bool cgltf_check_floatarray(const float* vals, int dim, float val) {
+static bool cgltf_check_floatarray(const cgltf_float* vals, int dim, cgltf_float val) {
 	while (dim--)
 	{
 		if (vals[dim] != val)
@@ -493,7 +502,7 @@ static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_prim
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
 			if (prim->attributes_count == 0 || prim->indices == 0)
 			{
-				context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;				 
+				context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
 			}
 
 			cgltf_write_line(context, "\"KHR_draco_mesh_compression\": {");
@@ -714,7 +723,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			{
 				cgltf_write_floatarrayprop(context, "attenuationColor", params->attenuation_color, 3);
 			}
-			if (params->attenuation_distance < FLT_MAX) 
+			if (params->attenuation_distance < FLT_MAX)
 			{
 				cgltf_write_floatprop(context, "attenuationDistance", params->attenuation_distance, FLT_MAX);
 			}

@@ -65,7 +65,7 @@
  *
  * `cgltf_num_components` is a tiny utility that tells you the dimensionality of
  * a certain accessor type. This can be used before `cgltf_accessor_unpack_floats` to help allocate
- * the necessary amount of memory. `cgltf_component_size` and `cgltf_calc_size` exist for 
+ * the necessary amount of memory. `cgltf_component_size` and `cgltf_calc_size` exist for
  * similar purposes.
  *
  * `cgltf_accessor_read_float` reads a certain element from a non-sparse accessor and converts it to
@@ -75,7 +75,7 @@
  *
  * `cgltf_accessor_read_uint` is similar to its floating-point counterpart, but limited to reading
  * vector types and does not support matrix types. The passed-in element size is the number of uints
- * in the output buffer, which should be in the range [1, 4]. Returns false if the passed-in 
+ * in the output buffer, which should be in the range [1, 4]. Returns false if the passed-in
  * element_size is too small, or if the accessor is sparse.
  *
  * `cgltf_accessor_read_index` is similar to its floating-point counterpart, but it returns size_t
@@ -98,7 +98,12 @@ extern "C" {
 
 typedef size_t cgltf_size;
 typedef long long int cgltf_ssize;
+#ifdef CGLTF_DOUBLE_PRECISION
+typedef double cgltf_float;
+#else
 typedef float cgltf_float;
+#endif
+typedef float cgltf_float32;
 typedef int cgltf_int;
 typedef unsigned int cgltf_uint;
 typedef int cgltf_bool;
@@ -1045,7 +1050,7 @@ static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* m
 		fclose(file);
 		return cgltf_result_out_of_memory;
 	}
-	
+
 	cgltf_size read_size = fread(file_data, 1, file_size, file);
 
 	fclose(file);
@@ -1977,7 +1982,7 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory.free_func(data->memory.user_data, data->materials);
 
-	for (cgltf_size i = 0; i < data->images_count; ++i) 
+	for (cgltf_size i = 0; i < data->images_count; ++i)
 	{
 		data->memory.free_func(data->memory.user_data, data->images[i].name);
 		data->memory.free_func(data->memory.user_data, data->images[i].uri);
@@ -2141,22 +2146,22 @@ void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix)
 
 	if (node->has_matrix)
 	{
-		memcpy(lm, node->matrix, sizeof(float) * 16);
+		memcpy(lm, node->matrix, sizeof(cgltf_float) * 16);
 	}
 	else
 	{
-		float tx = node->translation[0];
-		float ty = node->translation[1];
-		float tz = node->translation[2];
+		cgltf_float tx = node->translation[0];
+		cgltf_float ty = node->translation[1];
+		cgltf_float tz = node->translation[2];
 
-		float qx = node->rotation[0];
-		float qy = node->rotation[1];
-		float qz = node->rotation[2];
-		float qw = node->rotation[3];
+		cgltf_float qx = node->rotation[0];
+		cgltf_float qy = node->rotation[1];
+		cgltf_float qz = node->rotation[2];
+		cgltf_float qw = node->rotation[3];
 
-		float sx = node->scale[0];
-		float sy = node->scale[1];
-		float sz = node->scale[2];
+		cgltf_float sx = node->scale[0];
+		cgltf_float sy = node->scale[1];
+		cgltf_float sz = node->scale[2];
 
 		lm[0] = (1 - 2 * qy*qy - 2 * qz*qz) * sx;
 		lm[1] = (2 * qx*qy + 2 * qz*qw) * sx;
@@ -2189,18 +2194,18 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 
 	while (parent)
 	{
-		float pm[16];
+		cgltf_float pm[16];
 		cgltf_node_transform_local(parent, pm);
 
 		for (int i = 0; i < 4; ++i)
 		{
-			float l0 = lm[i * 4 + 0];
-			float l1 = lm[i * 4 + 1];
-			float l2 = lm[i * 4 + 2];
+			cgltf_float l0 = lm[i * 4 + 0];
+			cgltf_float l1 = lm[i * 4 + 1];
+			cgltf_float l2 = lm[i * 4 + 2];
 
-			float r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
-			float r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
-			float r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
+			cgltf_float r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
+			cgltf_float r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
+			cgltf_float r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
 
 			lm[i * 4 + 0] = r0;
 			lm[i * 4 + 1] = r1;
@@ -2226,7 +2231,7 @@ static cgltf_ssize cgltf_component_read_integer(const void* in, cgltf_component_
 		case cgltf_component_type_r_32u:
 			return *((const uint32_t*) in);
 		case cgltf_component_type_r_32f:
-			return (cgltf_ssize)*((const float*) in);
+			return (cgltf_ssize)*((const cgltf_float32*) in);
 		case cgltf_component_type_r_8:
 			return *((const int8_t*) in);
 		case cgltf_component_type_r_8u:
@@ -2245,7 +2250,7 @@ static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_typ
 		case cgltf_component_type_r_32u:
 			return *((const uint32_t*) in);
 		case cgltf_component_type_r_32f:
-			return (cgltf_size)((cgltf_ssize)*((const float*) in));
+			return (cgltf_size)((cgltf_ssize)*((const cgltf_float32*) in));
 		case cgltf_component_type_r_8u:
 			return *((const uint8_t*) in);
 		default:
@@ -2257,7 +2262,7 @@ static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_ty
 {
 	if (component_type == cgltf_component_type_r_32f)
 	{
-		return *((const float*) in);
+		return *((const cgltf_float32*) in);
 	}
 
 	if (normalized)
@@ -2396,9 +2401,16 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 		}
 		element += accessor->offset;
 
-		if (accessor->component_type == cgltf_component_type_r_32f && accessor->stride == floats_per_element * sizeof(cgltf_float))
+		if (accessor->component_type == cgltf_component_type_r_32f && accessor->stride == floats_per_element * sizeof(cgltf_float32))
 		{
-			memcpy(out, element, element_count * floats_per_element * sizeof(cgltf_float));
+#ifdef CGLTF_DOUBLE_PRECISION
+			for (cgltf_size i = 0; i < element_count * floats_per_element; ++i)
+			{
+				out[i] = ((const cgltf_float32*)element)[i];
+			}
+#else
+			memcpy(out, element, element_count * floats_per_element * sizeof(cgltf_float32));
+#endif
 		}
 		else
 		{
@@ -2434,7 +2446,7 @@ cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_fl
 		for (cgltf_size reader_index = 0; reader_index < sparse->count; reader_index++, index_data += index_stride, reader_head += accessor->stride)
 		{
 			size_t writer_index = cgltf_component_read_index(index_data, sparse->indices_component_type);
-			float* writer_head = out + writer_index * floats_per_element;
+			cgltf_float* writer_head = out + writer_index * floats_per_element;
 
 			if (!cgltf_element_read_float(reader_head, accessor->type, accessor->component_type, accessor->normalized, writer_head, floats_per_element))
 			{
@@ -2756,7 +2768,7 @@ static int cgltf_skip_json(jsmntok_t const* tokens, int i)
 	return i;
 }
 
-static void cgltf_fill_float_array(float* out_array, int size, float value)
+static void cgltf_fill_float_array(cgltf_float* out_array, int size, cgltf_float value)
 {
 	for (int j = 0; j < size; ++j)
 	{
@@ -2764,7 +2776,7 @@ static void cgltf_fill_float_array(float* out_array, int size, float value)
 	}
 }
 
-static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, float* out_array, int size)
+static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_float* out_array, int size)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
 	if (tokens[i].size != size)
@@ -3801,7 +3813,7 @@ static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const
 			out_texture_view->texcoord = cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0)
 		{
 			++i;
 			out_texture_view->scale = cgltf_json_to_float(tokens + i, json_chunk);
@@ -3886,11 +3898,11 @@ static int cgltf_parse_json_pbr_metallic_roughness(cgltf_options* options, jsmnt
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "metallicFactor") == 0)
 		{
 			++i;
-			out_pbr->metallic_factor = 
+			out_pbr->metallic_factor =
 				cgltf_json_to_float(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0) 
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0)
 		{
 			++i;
 			out_pbr->roughness_factor =
@@ -4360,11 +4372,11 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 	int size = tokens[i].size;
 	++i;
 
-	for (int j = 0; j < size; ++j) 
+	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
 
-		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0)
 		{
 			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->uri);
 		}
@@ -4444,7 +4456,7 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 				= cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0)
 		{
 			++i;
 			out_sampler->wrap_t
@@ -4494,7 +4506,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 			out_texture->sampler = CGLTF_PTRINDEX(cgltf_sampler, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0)
 		{
 			++i;
 			out_texture->image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
