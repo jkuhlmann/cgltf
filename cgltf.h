@@ -1167,7 +1167,7 @@ cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_s
 
 	json_chunk += GlbChunkHeaderSize;
 
-	const void* bin = 0;
+	const void* bin = NULL;
 	cgltf_size bin_size = 0;
 
 	if (GlbHeaderSize + GlbChunkHeaderSize + json_length + GlbChunkHeaderSize <= size)
