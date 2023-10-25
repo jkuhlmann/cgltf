@@ -2150,8 +2150,6 @@ static cgltf_ssize cgltf_component_read_integer(const void* in, cgltf_component_
 			return *((const uint16_t*) in);
 		case cgltf_component_type_r_32u:
 			return *((const uint32_t*) in);
-		case cgltf_component_type_r_32f:
-			return (cgltf_ssize)*((const float*) in);
 		case cgltf_component_type_r_8:
 			return *((const int8_t*) in);
 		case cgltf_component_type_r_8u:
@@ -2169,8 +2167,6 @@ static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_typ
 			return *((const uint16_t*) in);
 		case cgltf_component_type_r_32u:
 			return *((const uint32_t*) in);
-		case cgltf_component_type_r_32f:
-			return (cgltf_size)((cgltf_ssize)*((const float*) in));
 		case cgltf_component_type_r_8u:
 			return *((const uint8_t*) in);
 		default:
