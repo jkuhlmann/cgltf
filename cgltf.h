@@ -66,11 +66,11 @@
  * `cgltf_accessor_unpack_indices` reads in the index data from an accessor. Assumes that
  * `cgltf_load_buffers` has already been called. By passing null for the output pointer, users can
  * find out how many indices are required in the output buffer. Returns 0 if the accessor is
- * sparse.
+ * sparse or if the output component size is less than the accessor's component size.
  *
  * `cgltf_num_components` is a tiny utility that tells you the dimensionality of
  * a certain accessor type. This can be used before `cgltf_accessor_unpack_floats` to help allocate
- * the necessary amount of memory. `cgltf_component_size` and `cgltf_calc_size` exist for 
+ * the necessary amount of memory. `cgltf_component_size` and `cgltf_calc_size` exist for
  * similar purposes.
  *
  * `cgltf_accessor_read_float` reads a certain element from a non-sparse accessor and converts it to
@@ -80,7 +80,7 @@
  *
  * `cgltf_accessor_read_uint` is similar to its floating-point counterpart, but limited to reading
  * vector types and does not support matrix types. The passed-in element size is the number of uints
- * in the output buffer, which should be in the range [1, 4]. Returns false if the passed-in 
+ * in the output buffer, which should be in the range [1, 4]. Returns false if the passed-in
  * element_size is too small, or if the accessor is sparse.
  *
  * `cgltf_accessor_read_index` is similar to its floating-point counterpart, but it returns size_t
@@ -855,7 +855,7 @@ cgltf_size cgltf_component_size(cgltf_component_type component_type);
 cgltf_size cgltf_calc_size(cgltf_type type, cgltf_component_type component_type);
 
 cgltf_size cgltf_accessor_unpack_floats(const cgltf_accessor* accessor, cgltf_float* out, cgltf_size float_count);
-cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_uint* out, cgltf_size index_count);
+cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, void* out, cgltf_size out_component_size, cgltf_size index_count);
 
 /* this function is deprecated and will be removed in the future; use cgltf_extras::data instead */
 cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size);
@@ -1050,7 +1050,7 @@ static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* m
 		fclose(file);
 		return cgltf_result_out_of_memory;
 	}
-	
+
 	cgltf_size read_size = fread(file_data, 1, file_size, file);
 
 	fclose(file);
@@ -1982,7 +1982,7 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory.free_func(data->memory.user_data, data->materials);
 
-	for (cgltf_size i = 0; i < data->images_count; ++i) 
+	for (cgltf_size i = 0; i < data->images_count; ++i)
 	{
 		data->memory.free_func(data->memory.user_data, data->images[i].name);
 		data->memory.free_func(data->memory.user_data, data->images[i].uri);
@@ -2634,7 +2634,7 @@ cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const
 	return (cgltf_size)(object - animation->channels);
 }
 
-cgltf_size cgltf_accessor_unpack_indices_(const cgltf_accessor* accessor, void* out, cgltf_size out_component_size, cgltf_size index_count)
+cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, void* out, cgltf_size out_component_size, cgltf_size index_count)
 {
 	if (out == NULL)
 	{
@@ -2666,23 +2666,40 @@ cgltf_size cgltf_accessor_unpack_indices_(const cgltf_accessor* accessor, void* 
 	if (index_component_size == out_component_size && accessor->stride == out_component_size)
 	{
 		memcpy(out, element, index_count * index_component_size);
+		return index_count;
 	}
-	else
+
+	// The component size of the index data is less than the component size of the output array, so index data will be padded.
+	// NOTE: Assumes little-endian.
+	uint8_t* dest = (uint8_t*)out;
+	switch (index_component_size)
 	{
-		uint8_t* dest = (uint8_t*)out;
+	case 1:
 		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
 		{
 			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
-			memcpy(dest, &index_data, index_component_size);
+			memcpy(dest, &index_data, 1);
 		}
+		break;
+	case 2:
+		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
+		{
+			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
+			memcpy(dest, &index_data, 2);
+		}
+		break;
+	case 4:
+		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
+		{
+			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
+			memcpy(dest, &index_data, 4);
+		}
+		break;
+	default:
+		return 0;
 	}
 
 	return index_count;
-}
-
-cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, cgltf_uint* out, cgltf_size index_count)
-{
-	return cgltf_accessor_unpack_indices_(accessor, out, sizeof(cgltf_uint), index_count);
 }
 
 #define CGLTF_ERROR_JSON -1
@@ -3816,7 +3833,7 @@ static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const
 			out_texture_view->texcoord = cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "scale") == 0)
 		{
 			++i;
 			out_texture_view->scale = cgltf_json_to_float(tokens + i, json_chunk);
@@ -3901,11 +3918,11 @@ static int cgltf_parse_json_pbr_metallic_roughness(cgltf_options* options, jsmnt
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "metallicFactor") == 0)
 		{
 			++i;
-			out_pbr->metallic_factor = 
+			out_pbr->metallic_factor =
 				cgltf_json_to_float(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0) 
+		else if (cgltf_json_strcmp(tokens+i, json_chunk, "roughnessFactor") == 0)
 		{
 			++i;
 			out_pbr->roughness_factor =
@@ -4375,11 +4392,11 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 	int size = tokens[i].size;
 	++i;
 
-	for (int j = 0; j < size; ++j) 
+	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
 
-		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0) 
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "uri") == 0)
 		{
 			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_image->uri);
 		}
@@ -4459,7 +4476,7 @@ static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tok
 				= cgltf_json_to_int(tokens + i, json_chunk);
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "wrapT") == 0)
 		{
 			++i;
 			out_sampler->wrap_t
@@ -4509,7 +4526,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 			out_texture->sampler = CGLTF_PTRINDEX(cgltf_sampler, cgltf_json_to_int(tokens + i, json_chunk));
 			++i;
 		}
-		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0) 
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0)
 		{
 			++i;
 			out_texture->image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
