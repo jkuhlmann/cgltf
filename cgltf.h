@@ -1644,6 +1644,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
+			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
 			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count, cgltf_result_invalid_gltf);
 
 			if (data->meshes[i].primitives[j].attributes_count)
