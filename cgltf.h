@@ -1580,7 +1580,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		{
 			cgltf_accessor_sparse* sparse = &accessor->sparse;
 
-			cgltf_size indices_component_size = cgltf_calc_size(cgltf_type_scalar, sparse->indices_component_type);
+			cgltf_size indices_component_size = cgltf_component_size(sparse->indices_component_type);
 			cgltf_size indices_req_size = sparse->indices_byte_offset + indices_component_size * sparse->count;
 			cgltf_size values_req_size = sparse->values_byte_offset + element_size * sparse->count;
 
@@ -1675,7 +1675,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				indices->component_type != cgltf_component_type_r_32u, cgltf_result_invalid_gltf);
 
 			CGLTF_ASSERT_IF(indices && indices->type != cgltf_type_scalar, cgltf_result_invalid_gltf);
-			CGLTF_ASSERT_IF(indices && indices->stride != cgltf_calc_size(cgltf_type_scalar, indices->component_type), cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(indices && indices->stride != cgltf_component_size(indices->component_type), cgltf_result_invalid_gltf);
 
 			if (indices && indices->buffer_view && indices->buffer_view->buffer->data)
 			{
