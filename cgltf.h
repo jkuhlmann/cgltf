@@ -1740,6 +1740,11 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		}
 	}
 
+	for (cgltf_size i = 0; i < data->variants_count; ++i)
+	{
+		CGLTF_ASSERT_IF(!data->variants[i].name, cgltf_result_invalid_gltf);
+	}
+
 	return cgltf_result_success;
 }
 
