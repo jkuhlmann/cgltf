@@ -2810,6 +2810,11 @@ static void cgltf_parse_attribute_type(const char* name, cgltf_attribute_type* o
 	if (us && *out_type != cgltf_attribute_type_invalid)
 	{
 		*out_index = CGLTF_ATOI(us + 1);
+		if (*out_index < 0)
+		{
+			*out_type = cgltf_attribute_type_invalid;
+			*out_index = 0;
+		}
 	}
 }
 
