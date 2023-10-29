@@ -2669,34 +2669,23 @@ cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, void* o
 		return index_count;
 	}
 
-	// The component size of the index data is less than the component size of the output array, so index data will be padded.
-	// NOTE: Assumes little-endian.
-	uint8_t* dest = (uint8_t*)out;
-	switch (index_component_size)
+	// The component size of the output array is larger than the component size of the index data, so index data will be padded.
+	switch (out_component_size)
 	{
-	case 1:
-		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
-		{
-			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
-			memcpy(dest, &index_data, 1);
-		}
-		break;
 	case 2:
-		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
+		for (cgltf_size index = 0; index < index_count; index++, element += accessor->stride)
 		{
-			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
-			memcpy(dest, &index_data, 2);
+			((uint16_t*)out)[index] = (uint16_t)cgltf_component_read_index(element, accessor->component_type);
 		}
 		break;
 	case 4:
-		for (cgltf_size index = 0; index < index_count; index++, dest += out_component_size, element += accessor->stride)
+		for (cgltf_size index = 0; index < index_count; index++, element += accessor->stride)
 		{
-			cgltf_size index_data = cgltf_component_read_index(element, accessor->component_type);
-			memcpy(dest, &index_data, 4);
+			((uint32_t*)out)[index] = (uint32_t)cgltf_component_read_index(element, accessor->component_type);
 		}
 		break;
 	default:
-		return 0;
+		break;
 	}
 
 	return index_count;
