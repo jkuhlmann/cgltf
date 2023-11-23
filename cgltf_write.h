@@ -111,6 +111,12 @@ typedef struct {
 	#define CGLTF_DECIMAL_DIG 9
 #endif
 
+#ifdef DBL_DECIMAL_DIG
+	#define CGLTF_DBL_DECIMAL_DIG (DBL_DECIMAL_DIG)
+#else
+	#define CGLTF_DBL_DECIMAL_DIG 17
+#endif
+
 #define CGLTF_SPRINTF(...) { \
 		assert(context->cursor || (!context->cursor && context->remaining == 0)); \
 		context->tmp = snprintf ( context->cursor, context->remaining, __VA_ARGS__ ); \
@@ -327,6 +333,25 @@ static void cgltf_write_floatarrayprop(cgltf_write_context* context, const char*
 		else
 		{
 			CGLTF_SPRINTF("%.*g", CGLTF_DECIMAL_DIG, vals[i]);
+		}
+	}
+	CGLTF_SPRINTF("]");
+	context->needs_comma = 1;
+}
+
+static void cgltf_write_doublearrayprop(cgltf_write_context* context, const char* label, const cgltf_double* vals, cgltf_size dim)
+{
+	cgltf_write_indent(context);
+	CGLTF_SPRINTF("\"%s\": [", label);
+	for (cgltf_size i = 0; i < dim; ++i)
+	{
+		if (i != 0)
+		{
+			CGLTF_SPRINTF(", %.*g", CGLTF_DBL_DECIMAL_DIG, vals[i]);
+		}
+		else
+		{
+			CGLTF_SPRINTF("%.*g", CGLTF_DBL_DECIMAL_DIG, vals[i]);
 		}
 	}
 	CGLTF_SPRINTF("]");
@@ -950,20 +975,20 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 	CGLTF_WRITE_IDXPROP("mesh", node->mesh, context->data->meshes);
 	cgltf_write_strprop(context, "name", node->name);
 	if (node->has_matrix)
-	{
-		cgltf_write_floatarrayprop(context, "matrix", node->matrix, 16);
+	{		
+		cgltf_write_doublearrayprop(context, "matrix", node->matrix, 16);
 	}
 	if (node->has_translation)
 	{
-		cgltf_write_floatarrayprop(context, "translation", node->translation, 3);
+		cgltf_write_doublearrayprop(context, "translation", node->translation, 3);
 	}
 	if (node->has_rotation)
 	{
-		cgltf_write_floatarrayprop(context, "rotation", node->rotation, 4);
+		cgltf_write_doublearrayprop(context, "rotation", node->rotation, 4);
 	}
 	if (node->has_scale)
 	{
-		cgltf_write_floatarrayprop(context, "scale", node->scale, 3);
+		cgltf_write_doublearrayprop(context, "scale", node->scale, 3);
 	}
 	if (node->skin)
 	{

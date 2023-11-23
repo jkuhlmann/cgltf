@@ -99,6 +99,7 @@ extern "C" {
 typedef size_t cgltf_size;
 typedef long long int cgltf_ssize;
 typedef float cgltf_float;
+typedef double cgltf_double;
 typedef int cgltf_int;
 typedef unsigned int cgltf_uint;
 typedef int cgltf_bool;
@@ -659,10 +660,10 @@ struct cgltf_node {
 	cgltf_bool has_rotation;
 	cgltf_bool has_scale;
 	cgltf_bool has_matrix;
-	cgltf_float translation[3];
-	cgltf_float rotation[4];
-	cgltf_float scale[3];
-	cgltf_float matrix[16];
+	cgltf_double translation[3];
+	cgltf_double rotation[4];
+	cgltf_double scale[3];
+	cgltf_double matrix[16];
 	cgltf_extras extras;
 	cgltf_bool has_mesh_gpu_instancing;
 	cgltf_mesh_gpu_instancing mesh_gpu_instancing;
@@ -824,8 +825,8 @@ cgltf_result cgltf_validate(cgltf_data* data);
 
 void cgltf_free(cgltf_data* data);
 
-void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix);
-void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix);
+void cgltf_node_transform_local(const cgltf_node* node, cgltf_double* out_matrix);
+void cgltf_node_transform_world(const cgltf_node* node, cgltf_double* out_matrix);
 
 const uint8_t* cgltf_buffer_view_data(const cgltf_buffer_view* view);
 
@@ -2060,72 +2061,72 @@ void cgltf_free(cgltf_data* data)
 	data->memory.free_func(data->memory.user_data, data);
 }
 
-void cgltf_node_transform_local(const cgltf_node* node, cgltf_float* out_matrix)
+void cgltf_node_transform_local(const cgltf_node* node, cgltf_double* out_matrix)
 {
-	cgltf_float* lm = out_matrix;
+	cgltf_double* lm = out_matrix;
 
 	if (node->has_matrix)
 	{
-		memcpy(lm, node->matrix, sizeof(float) * 16);
+		memcpy(lm, node->matrix, sizeof(double) * 16);
 	}
 	else
 	{
-		float tx = node->translation[0];
-		float ty = node->translation[1];
-		float tz = node->translation[2];
+		double tx = node->translation[0];
+		double ty = node->translation[1];
+		double tz = node->translation[2];
 
-		float qx = node->rotation[0];
-		float qy = node->rotation[1];
-		float qz = node->rotation[2];
-		float qw = node->rotation[3];
+		double qx = node->rotation[0];
+		double qy = node->rotation[1];
+		double qz = node->rotation[2];
+		double qw = node->rotation[3];
 
-		float sx = node->scale[0];
-		float sy = node->scale[1];
-		float sz = node->scale[2];
+		double sx = node->scale[0];
+		double sy = node->scale[1];
+		double sz = node->scale[2];
 
 		lm[0] = (1 - 2 * qy*qy - 2 * qz*qz) * sx;
 		lm[1] = (2 * qx*qy + 2 * qz*qw) * sx;
 		lm[2] = (2 * qx*qz - 2 * qy*qw) * sx;
-		lm[3] = 0.f;
+		lm[3] = 0.;
 
 		lm[4] = (2 * qx*qy - 2 * qz*qw) * sy;
 		lm[5] = (1 - 2 * qx*qx - 2 * qz*qz) * sy;
 		lm[6] = (2 * qy*qz + 2 * qx*qw) * sy;
-		lm[7] = 0.f;
+		lm[7] = 0.;
 
 		lm[8] = (2 * qx*qz + 2 * qy*qw) * sz;
 		lm[9] = (2 * qy*qz - 2 * qx*qw) * sz;
 		lm[10] = (1 - 2 * qx*qx - 2 * qy*qy) * sz;
-		lm[11] = 0.f;
+		lm[11] = 0.;
 
 		lm[12] = tx;
 		lm[13] = ty;
 		lm[14] = tz;
-		lm[15] = 1.f;
+		lm[15] = 1.;
 	}
 }
 
-void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
+void cgltf_node_transform_world(const cgltf_node* node, cgltf_double* out_matrix)
 {
-	cgltf_float* lm = out_matrix;
+	cgltf_double* lm = out_matrix;
 	cgltf_node_transform_local(node, lm);
 
 	const cgltf_node* parent = node->parent;
 
 	while (parent)
 	{
-		float pm[16];
+		double pm[16];
 		cgltf_node_transform_local(parent, pm);
 
 		for (int i = 0; i < 4; ++i)
 		{
-			float l0 = lm[i * 4 + 0];
-			float l1 = lm[i * 4 + 1];
-			float l2 = lm[i * 4 + 2];
+			double l0 = lm[i * 4 + 0];
+			double l1 = lm[i * 4 + 1];
+			double l2 = lm[i * 4 + 2];
 
-			float r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
-			float r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
-			float r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
+			double r0 = l0 * pm[0] + l1 * pm[4] + l2 * pm[8];
+			double r1 = l0 * pm[1] + l1 * pm[5] + l2 * pm[9];
+			double r2 = l0 * pm[2] + l1 * pm[6] + l2 * pm[10];
 
 			lm[i * 4 + 0] = r0;
 			lm[i * 4 + 1] = r1;
@@ -2641,6 +2642,16 @@ static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json
 	return (cgltf_float)CGLTF_ATOF(tmp);
 }
 
+static cgltf_double cgltf_json_to_double(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
+	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
+	char tmp[128];
+	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
+	strncpy(tmp, (const char*)json_chunk + tok->start, size);
+	tmp[size] = 0;
+	return (cgltf_double)CGLTF_ATOF(tmp);
+}
+
 static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	int size = (int)(tok->end - tok->start);
@@ -2697,6 +2708,23 @@ static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const ui
 	{
 		CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
 		out_array[j] = cgltf_json_to_float(tokens + i, json_chunk);
+		++i;
+	}
+	return i;
+}
+
+static int cgltf_parse_json_double_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, double* out_array, int size)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_ARRAY);
+	if (tokens[i].size != size)
+	{
+		return CGLTF_ERROR_JSON;
+	}
+	++i;
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_PRIMITIVE);
+		out_array[j] = cgltf_json_to_double(tokens + i, json_chunk);
 		++i;
 	}
 	return i;
@@ -5439,14 +5467,14 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 
-	out_node->rotation[3] = 1.0f;
-	out_node->scale[0] = 1.0f;
-	out_node->scale[1] = 1.0f;
-	out_node->scale[2] = 1.0f;
-	out_node->matrix[0] = 1.0f;
-	out_node->matrix[5] = 1.0f;
-	out_node->matrix[10] = 1.0f;
-	out_node->matrix[15] = 1.0f;
+	out_node->rotation[3] = 1.0;
+	out_node->scale[0] = 1.0;
+	out_node->scale[1] = 1.0;
+	out_node->scale[2] = 1.0;
+	out_node->matrix[0] = 1.0;
+	out_node->matrix[5] = 1.0;
+	out_node->matrix[10] = 1.0;
+	out_node->matrix[15] = 1.0;
 
 	int size = tokens[i].size;
 	++i;
@@ -5497,22 +5525,22 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "translation") == 0)
 		{
 			out_node->has_translation = 1;
-			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_node->translation, 3);
+			i = cgltf_parse_json_double_array(tokens, i + 1, json_chunk, out_node->translation, 3);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "rotation") == 0)
 		{
 			out_node->has_rotation = 1;
-			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_node->rotation, 4);
+			i = cgltf_parse_json_double_array(tokens, i + 1, json_chunk, out_node->rotation, 4);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "scale") == 0)
 		{
 			out_node->has_scale = 1;
-			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_node->scale, 3);
+			i = cgltf_parse_json_double_array(tokens, i + 1, json_chunk, out_node->scale, 3);
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "matrix") == 0)
 		{
 			out_node->has_matrix = 1;
-			i = cgltf_parse_json_float_array(tokens, i + 1, json_chunk, out_node->matrix, 16);
+			i = cgltf_parse_json_double_array(tokens, i + 1, json_chunk, out_node->matrix, 16);
 		}
 		else if (cgltf_json_strcmp(tokens + i, json_chunk, "weights") == 0)
 		{
