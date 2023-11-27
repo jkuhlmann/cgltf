@@ -202,6 +202,7 @@ typedef enum cgltf_type
 
 typedef enum cgltf_primitive_type
 {
+	cgltf_primitive_type_invalid,
 	cgltf_primitive_type_points,
 	cgltf_primitive_type_lines,
 	cgltf_primitive_type_line_loop,
@@ -1636,6 +1637,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
 		{
+			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
 			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count, cgltf_result_invalid_gltf);
 
 			if (data->meshes[i].primitives[j].attributes_count)
@@ -3163,6 +3165,31 @@ static int cgltf_parse_json_material_mappings(cgltf_options* options, jsmntok_t 
 	return i;
 }
 
+static cgltf_primitive_type cgltf_json_to_primitive_type(jsmntok_t const* tok, const uint8_t* json_chunk)
+{
+	int type = cgltf_json_to_int(tok, json_chunk);
+
+	switch (type)
+	{
+	case 0:
+		return cgltf_primitive_type_points;
+	case 1:
+		return cgltf_primitive_type_lines;
+	case 2:
+		return cgltf_primitive_type_line_loop;
+	case 3:
+		return cgltf_primitive_type_line_strip;
+	case 4:
+		return cgltf_primitive_type_triangles;
+	case 5:
+		return cgltf_primitive_type_triangle_strip;
+	case 6:
+		return cgltf_primitive_type_triangle_fan;
+	default:
+		return cgltf_primitive_type_invalid;
+	}
+}
+
 static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_primitive* out_prim)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -3179,9 +3206,7 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "mode") == 0)
 		{
 			++i;
-			out_prim->type
-					= (cgltf_primitive_type)
-					cgltf_json_to_int(tokens+i, json_chunk);
+			out_prim->type = cgltf_json_to_primitive_type(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "indices") == 0)
