@@ -1558,6 +1558,9 @@ cgltf_result cgltf_validate(cgltf_data* data)
 	{
 		cgltf_accessor* accessor = &data->accessors[i];
 
+		CGLTF_ASSERT_IF(data->accessors[i].component_type == cgltf_component_type_invalid, cgltf_result_invalid_gltf);
+		CGLTF_ASSERT_IF(data->accessors[i].type == cgltf_type_invalid, cgltf_result_invalid_gltf);
+
 		cgltf_size element_size = cgltf_calc_size(accessor->type, accessor->component_type);
 
 		if (accessor->buffer_view)
@@ -1571,7 +1574,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		{
 			cgltf_accessor_sparse* sparse = &accessor->sparse;
 
-			cgltf_size indices_component_size = cgltf_calc_size(cgltf_type_scalar, sparse->indices_component_type);
+			cgltf_size indices_component_size = cgltf_component_size(sparse->indices_component_type);
 			cgltf_size indices_req_size = sparse->indices_byte_offset + indices_component_size * sparse->count;
 			cgltf_size values_req_size = sparse->values_byte_offset + element_size * sparse->count;
 
@@ -1640,41 +1643,45 @@ cgltf_result cgltf_validate(cgltf_data* data)
 			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
 			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count, cgltf_result_invalid_gltf);
 
-			if (data->meshes[i].primitives[j].attributes_count)
+			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes_count == 0, cgltf_result_invalid_gltf);
+
+			cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
+
+			CGLTF_ASSERT_IF(first->count == 0, cgltf_result_invalid_gltf);
+
+			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
 			{
-				cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
+				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
+			}
 
-				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
+			{
+				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
 				{
-					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
+					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
 				}
+			}
 
-				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
-				{
-					for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
-					{
-						CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
-					}
-				}
+			cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
 
-				cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
+			CGLTF_ASSERT_IF(indices &&
+				indices->component_type != cgltf_component_type_r_8u &&
+				indices->component_type != cgltf_component_type_r_16u &&
+				indices->component_type != cgltf_component_type_r_32u, cgltf_result_invalid_gltf);
 
-				CGLTF_ASSERT_IF(indices &&
-					indices->component_type != cgltf_component_type_r_8u &&
-					indices->component_type != cgltf_component_type_r_16u &&
-					indices->component_type != cgltf_component_type_r_32u, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(indices && indices->type != cgltf_type_scalar, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(indices && indices->stride != cgltf_component_size(indices->component_type), cgltf_result_invalid_gltf);
 
-				if (indices && indices->buffer_view && indices->buffer_view->buffer->data)
-				{
-					cgltf_size index_bound = cgltf_calc_index_bound(indices->buffer_view, indices->offset, indices->component_type, indices->count);
+			if (indices && indices->buffer_view && indices->buffer_view->buffer->data)
+			{
+				cgltf_size index_bound = cgltf_calc_index_bound(indices->buffer_view, indices->offset, indices->component_type, indices->count);
 
-					CGLTF_ASSERT_IF(index_bound >= first->count, cgltf_result_data_too_short);
-				}
+				CGLTF_ASSERT_IF(index_bound >= first->count, cgltf_result_data_too_short);
+			}
 
-				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].mappings_count; ++k)
-				{
-					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
-				}
+			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].mappings_count; ++k)
+			{
+				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
 			}
 		}
 	}
@@ -2619,7 +2626,7 @@ cgltf_size cgltf_accessor_unpack_indices(const cgltf_accessor* accessor, void* o
 #define CGLTF_ERROR_LEGACY -3
 
 #define CGLTF_CHECK_TOKTYPE(tok_, type_) if ((tok_).type != (type_)) { return CGLTF_ERROR_JSON; }
-#define CGLTF_CHECK_TOKTYPE_RETTYPE(tok_, type_, ret_) if ((tok_).type != (type_)) { return (ret_)CGLTF_ERROR_JSON; }
+#define CGLTF_CHECK_TOKTYPE_RET(tok_, type_, ret_) if ((tok_).type != (type_)) { return ret_; }
 #define CGLTF_CHECK_KEY(tok_) if ((tok_).type != JSMN_STRING || (tok_).size == 0) { return CGLTF_ERROR_JSON; } /* checking size for 0 verifies that a value follows the key */
 
 #define CGLTF_PTRINDEX(type, idx) (type*)((cgltf_size)idx + 1)
@@ -2646,12 +2653,13 @@ static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 
 static cgltf_size cgltf_json_to_size(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
-	CGLTF_CHECK_TOKTYPE_RETTYPE(*tok, JSMN_PRIMITIVE, cgltf_size);
+	CGLTF_CHECK_TOKTYPE_RET(*tok, JSMN_PRIMITIVE, 0);
 	char tmp[128];
 	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
 	strncpy(tmp, (const char*)json_chunk + tok->start, size);
 	tmp[size] = 0;
-	return (cgltf_size)CGLTF_ATOLL(tmp);
+	long long res = CGLTF_ATOLL(tmp);
+	return res < 0 ? 0 : (cgltf_size)res;
 }
 
 static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
@@ -3456,7 +3464,7 @@ static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, cons
 		if (cgltf_json_strcmp(tokens+i, json_chunk, "count") == 0)
 		{
 			++i;
-			out_sparse->count = cgltf_json_to_int(tokens + i, json_chunk);
+			out_sparse->count = cgltf_json_to_size(tokens + i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "indices") == 0)
@@ -3592,8 +3600,7 @@ static int cgltf_parse_json_accessor(cgltf_options* options, jsmntok_t const* to
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "count") == 0)
 		{
 			++i;
-			out_accessor->count =
-					cgltf_json_to_int(tokens+i, json_chunk);
+			out_accessor->count = cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "type") == 0)
@@ -4832,7 +4839,7 @@ static int cgltf_parse_json_meshopt_compression(cgltf_options* options, jsmntok_
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "count") == 0)
 		{
 			++i;
-			out_meshopt_compression->count = cgltf_json_to_int(tokens+i, json_chunk);
+			out_meshopt_compression->count = cgltf_json_to_size(tokens+i, json_chunk);
 			++i;
 		}
 		else if (cgltf_json_strcmp(tokens+i, json_chunk, "mode") == 0)
