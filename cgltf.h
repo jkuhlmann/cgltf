@@ -2055,7 +2055,11 @@ void cgltf_free(cgltf_data* data)
 
 	data->memory.free_func(data->memory.user_data, data->variants);
 
-	data->memory.free_func(data->memory.user_data, data->xmp_json_ld_packets);
+    for (cgltf_size i = 0; i < data->xmp_json_ld_packets_count; ++i)
+    {
+        data->memory.free_func(data->memory.user_data, data->xmp_json_ld_packets[i].data);
+    }
+    data->memory.free_func(data->memory.user_data, data->xmp_json_ld_packets);
 
 	cgltf_free_extensions(data, data->data_extensions, data->data_extensions_count);
 	cgltf_free_extras(data, &data->extras);
@@ -3381,9 +3385,11 @@ static int cgltf_parse_json_mesh(cgltf_options* options, jsmntok_t const* tokens
 
 			int extensions_size = tokens[i].size;
 			++i;
-			out_mesh->extensions_count = 0;
+            out_mesh->extensions_count = 0;
+            out_mesh->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
-			for (int j = 0; j < extensions_size; ++j) {
+			for (int j = 0; j < extensions_size; ++j)
+            {
 				CGLTF_CHECK_KEY(tokens[i]);
 
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_xmp_json_ld") == 0)
@@ -4342,7 +4348,8 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 			int extensions_size = tokens[i].size;
 			++i;
 
-			for (int j = 0; j < extensions_size; ++j) {
+			for (int j = 0; j < extensions_size; ++j)
+            {
 				CGLTF_CHECK_KEY(tokens[i]);
 
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_xmp_json_ld") == 0)
@@ -4488,8 +4495,8 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 
 			int extensions_size = tokens[i].size;
 			++i;
+            out_texture->extensions_count = 0;
 			out_texture->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
-			out_texture->extensions_count = 0;
 
 			if (!out_texture->extensions)
 			{
@@ -5686,7 +5693,8 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 					out_node->has_mesh_gpu_instancing = 1;
 					i = cgltf_parse_json_mesh_gpu_instancing(options, tokens, i + 1, json_chunk, &out_node->mesh_gpu_instancing);
 				}
-				else if (cgltf_json_strcmp(tokens + i, json_chunk, "KHR_xmp_json_ld") == 0) {
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "KHR_xmp_json_ld") == 0)
+                {
 					++i;
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 					i = cgltf_parse_xmp_json_lds(tokens, i + 1, json_chunk, &(out_node->xmp_json_ld));
@@ -5780,7 +5788,8 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 			int extensions_size = tokens[i].size;
 			++i;
 
-			for (int j = 0; j < extensions_size; ++j) {
+			for (int j = 0; j < extensions_size; ++j)
+            {
 				CGLTF_CHECK_KEY(tokens[i]);
 
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_xmp_json_ld") == 0)
@@ -6050,9 +6059,11 @@ static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* t
 
 			int extensions_size = tokens[i].size;
 			++i;
-			out_animation->extensions_count = 0;
+            out_animation->extensions_count = 0;
+            out_animation->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
-			for (int j = 0; j < extensions_size; ++j) {
+			for (int j = 0; j < extensions_size; ++j)
+            {
 				CGLTF_CHECK_KEY(tokens[i]);
 
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_xmp_json_ld") == 0)
@@ -6199,8 +6210,10 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 			int extensions_size = tokens[i].size;
 			++i;
 			out_asset->extensions_count = 0;
+            out_asset->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
-			for (int j = 0; j < extensions_size; ++j) {
+			for (int j = 0; j < extensions_size; ++j)
+            {
 				CGLTF_CHECK_KEY(tokens[i]);
 
 				if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_xmp_json_ld") == 0)
@@ -6238,7 +6251,8 @@ static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* token
 	return i;
 }
 
-static int cgltf_parse_xmp_json_ld_packet(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_xmp_json_ld_packet* packet) {
+static int cgltf_parse_xmp_json_ld_packet(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_xmp_json_ld_packet* packet)
+{
 	size_t start = tokens[i].start;
 	size_t size = tokens[i].end - start;
 	packet->data = (char*)options->memory.alloc_func(options->memory.user_data, size + 1);
@@ -6253,8 +6267,8 @@ static int cgltf_parse_xmp_json_ld_packet(cgltf_options* options, jsmntok_t cons
 	return i;
 }
 
-static int cgltf_parse_xmp_json_ld_packets(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data) {
-
+static int cgltf_parse_xmp_json_ld_packets(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+{
 	i = cgltf_parse_json_array(options, tokens, i, json_chunk, sizeof(cgltf_material_variant),
 							   (void**)&out_data->xmp_json_ld_packets, &out_data->xmp_json_ld_packets_count);
 
@@ -6497,16 +6511,20 @@ static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens
 					int data_size = tokens[i].size;
 					++i;
 
-					for (int m = 0; m < data_size; ++m) {
+					for (int m = 0; m < data_size; ++m)
+                    {
 						CGLTF_CHECK_KEY(tokens[i]);
 
-						if (cgltf_json_strcmp(tokens + i, json_chunk, "packets") == 0) {
+						if (cgltf_json_strcmp(tokens + i, json_chunk, "packets") == 0)
+                        {
 							i = cgltf_parse_xmp_json_ld_packets(options, tokens, i + 1, json_chunk, out_data);
-						} else {
+						}
+                        else
+                        {
 							i = cgltf_skip_json(tokens, i + 1);
 						}
-
-						if (i < 0) {
+						if (i < 0)
+                        {
 							return i;
 						}
 					}
