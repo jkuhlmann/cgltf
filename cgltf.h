@@ -4347,6 +4347,9 @@ static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* token
 
 			int extensions_size = tokens[i].size;
 			++i;
+            out_image->extensions_count = 0;
+            out_image->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
+
 
 			for (int j = 0; j < extensions_size; ++j)
             {
@@ -5787,6 +5790,8 @@ static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* token
 
 			int extensions_size = tokens[i].size;
 			++i;
+            out_scene->extensions_count = 0;
+            out_scene->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
 
 			for (int j = 0; j < extensions_size; ++j)
             {
