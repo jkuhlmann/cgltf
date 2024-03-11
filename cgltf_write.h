@@ -86,7 +86,8 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MESH_GPU_INSTANCING (1 << 14)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_IRIDESCENCE (1 << 15)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY (1 << 16)
-#define CGLTF_EXTENSION_FLAG_XMP_JSON_LD (1 << 17)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION (1 << 17)
+#define CGLTF_EXTENSION_FLAG_XMP_JSON_LD (1 << 18)
 
 typedef struct {
 	char* buffer;
@@ -359,6 +360,21 @@ static int cgltf_int_from_component_type(cgltf_component_type ctype)
 	}
 }
 
+static int cgltf_int_from_primitive_type(cgltf_primitive_type ctype)
+{
+	switch (ctype)
+	{
+		case cgltf_primitive_type_points: return 0;
+		case cgltf_primitive_type_lines: return 1;
+		case cgltf_primitive_type_line_loop: return 2;
+		case cgltf_primitive_type_line_strip: return 3;
+		case cgltf_primitive_type_triangles: return 4;
+		case cgltf_primitive_type_triangle_strip: return 5;
+		case cgltf_primitive_type_triangle_fan: return 6;
+		default: return -1;
+	}
+}
+
 static const char* cgltf_str_from_alpha_mode(cgltf_alpha_mode alpha_mode)
 {
 	switch (alpha_mode)
@@ -473,7 +489,7 @@ static void cgltf_write_asset(cgltf_write_context* context, const cgltf_asset* a
 
 static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_primitive* prim)
 {
-	cgltf_write_intprop(context, "mode", (int) prim->type, 4);
+	cgltf_write_intprop(context, "mode", cgltf_int_from_primitive_type(prim->type), 4);
 	CGLTF_WRITE_IDXPROP("indices", prim->indices, context->data->accessors);
 	CGLTF_WRITE_IDXPROP("material", prim->material, context->data->materials);
 	cgltf_write_line(context, "\"attributes\": {");
@@ -686,6 +702,11 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
         context->extension_flags |= CGLTF_EXTENSION_FLAG_XMP_JSON_LD;
     }
 
+	if (material->has_dispersion)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION;
+	}
+
 	if (material->has_pbr_metallic_roughness)
 	{
 		const cgltf_pbr_metallic_roughness* params = &material->pbr_metallic_roughness;
@@ -701,7 +722,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		cgltf_write_line(context, "}");
 	}
 
-	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen || material->has_volume || material->has_emissive_strength || material->has_iridescence || material->has_anisotropy || material->xmp_json_ld)
+	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen || material->has_volume || material->has_emissive_strength || material->has_iridescence || material->has_anisotropy || material->has_dispersion || material->xmp_json_ld)
 	{
 		cgltf_write_line(context, "\"extensions\": {");
 		if (material->has_clearcoat)
@@ -827,6 +848,13 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
             CGLTF_WRITE_IDXPROP("packet", material->xmp_json_ld, context->data->xmp_json_ld_packets);
             cgltf_write_line(context, "}");
         }
+		if (material->has_dispersion)
+		{
+			cgltf_write_line(context, "\"KHR_materials_dispersion\": {");
+			const cgltf_dispersion* params = &material->dispersion;
+			cgltf_write_floatprop(context, "dispersion", params->dispersion, 0.f);
+			cgltf_write_line(context, "}");
+		}
 		cgltf_write_line(context, "}");
 	}
 
@@ -1390,6 +1418,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
     if (extension_flags & CGLTF_EXTENSION_FLAG_XMP_JSON_LD) {
         cgltf_write_stritem(context, "KHR_xmp_json_ld");
     }
+	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION) {
+		cgltf_write_stritem(context, "KHR_materials_dispersion");
+	}
 }
 
 cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data)
