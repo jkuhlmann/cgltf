@@ -4538,6 +4538,33 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 						}
 					}
 				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "EXT_texture_webp") == 0)
+				{
+					++i;
+					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+					int num_properties = tokens[i].size;
+					++i;
+
+					for (int t = 0; t < num_properties; ++t)
+					{
+						CGLTF_CHECK_KEY(tokens[i]);
+
+						if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0)
+						{
+							++i;
+							out_texture->image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
+							++i;
+						}
+						else
+						{
+							i = cgltf_skip_json(tokens, i + 1);
+						}
+						if (i < 0)
+						{
+							return i;
+						}
+					}
+				}
 				else
 				{
 					i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_texture->extensions[out_texture->extensions_count++]));
