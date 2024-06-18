@@ -395,6 +395,8 @@ typedef struct cgltf_texture
 	cgltf_sampler* sampler;
 	cgltf_bool has_basisu;
 	cgltf_image* basisu_image;
+	cgltf_bool has_webp;
+	cgltf_image* webp_image;
 	cgltf_extras extras;
 	cgltf_size extensions_count;
 	cgltf_extension* extensions;
@@ -4540,6 +4542,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "EXT_texture_webp") == 0)
 				{
+					out_texture->has_webp = 1;
 					++i;
 					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
 					int num_properties = tokens[i].size;
@@ -4552,7 +4555,7 @@ static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tok
 						if (cgltf_json_strcmp(tokens + i, json_chunk, "source") == 0)
 						{
 							++i;
-							out_texture->image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
+							out_texture->webp_image = CGLTF_PTRINDEX(cgltf_image, cgltf_json_to_int(tokens + i, json_chunk));
 							++i;
 						}
 						else
