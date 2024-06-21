@@ -6578,6 +6578,7 @@ static int cgltf_fixup_pointers(cgltf_data* data)
 	{
 		CGLTF_PTRFIXUP(data->textures[i].image, data->images, data->images_count);
 		CGLTF_PTRFIXUP(data->textures[i].basisu_image, data->images, data->images_count);
+		CGLTF_PTRFIXUP(data->textures[i].webp_image, data->images, data->images_count);
 		CGLTF_PTRFIXUP(data->textures[i].sampler, data->samplers, data->samplers_count);
 	}
 
