@@ -1289,6 +1289,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	if (extension_flags & CGLTF_EXTENSION_FLAG_TEXTURE_BASISU) {
 		cgltf_write_stritem(context, "KHR_texture_basisu");
 	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_TEXTURE_WEBP) {
+		cgltf_write_stritem(context, "EXT_texture_webp");
+	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_EMISSIVE_STRENGTH) {
 		cgltf_write_stritem(context, "KHR_materials_emissive_strength");
 	}
