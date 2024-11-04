@@ -844,6 +844,8 @@ void cgltf_node_transform_world(const cgltf_node* node, cgltf_float* out_matrix)
 
 const uint8_t* cgltf_buffer_view_data(const cgltf_buffer_view* view);
 
+const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* prim, cgltf_attribute_type type, cgltf_int index);
+
 cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size);
 cgltf_bool cgltf_accessor_read_uint(const cgltf_accessor* accessor, cgltf_size index, cgltf_uint* out, cgltf_size element_size);
 cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size index);
@@ -2310,6 +2312,18 @@ const uint8_t* cgltf_buffer_view_data(const cgltf_buffer_view* view)
 	const uint8_t* result = (const uint8_t*)view->buffer->data;
 	result += view->offset;
 	return result;
+}
+
+const cgltf_accessor* cgltf_find_accessor(const cgltf_primitive* prim, cgltf_attribute_type type, cgltf_int index)
+{
+	for (cgltf_size i = 0; i < prim->attributes_count; ++i)
+	{
+		const cgltf_attribute* attr = &prim->attributes[i];
+		if (attr->type == type && attr->index == index)
+			return attr->data;
+	}
+
+	return NULL;
 }
 
 cgltf_bool cgltf_accessor_read_float(const cgltf_accessor* accessor, cgltf_size index, cgltf_float* out, cgltf_size element_size)
