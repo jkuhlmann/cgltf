@@ -106,6 +106,7 @@ cgltf also supports some glTF extensions:
 - KHR_lights_punctual
 - KHR_materials_anisotropy
 - KHR_materials_clearcoat
+- KHR_materials_diffuse_transmission
 - KHR_materials_dispersion
 - KHR_materials_emissive_strength
 - KHR_materials_ior
@@ -117,8 +118,6 @@ cgltf also supports some glTF extensions:
 - KHR_materials_unlit
 - KHR_materials_variants
 - KHR_materials_volume
-- KHR_materials_iridescence
-- KHR_materials_diffuse_transmission
 - KHR_texture_basisu (requires a library like [Binomial Basisu](https://github.com/BinomialLLC/basis_universal) for transcoding to native compressed texture)
 - KHR_texture_transform
 
