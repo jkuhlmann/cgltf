@@ -99,13 +99,17 @@ cgltf supports core glTF 2.0:
 - extras data
 
 cgltf also supports some glTF extensions:
-- EXT_meshopt_compression
 - EXT_mesh_gpu_instancing
+- EXT_meshopt_compression
+- EXT_texture_webp
 - KHR_draco_mesh_compression (requires a library like [Google's Draco](https://github.com/google/draco) for decompression though)
 - KHR_lights_punctual
+- KHR_materials_anisotropy
 - KHR_materials_clearcoat
+- KHR_materials_dispersion
 - KHR_materials_emissive_strength
 - KHR_materials_ior
+- KHR_materials_iridescence
 - KHR_materials_pbrSpecularGlossiness
 - KHR_materials_sheen
 - KHR_materials_specular
@@ -136,7 +140,7 @@ Everyone is welcome to contribute to the library. If you find any problems, you 
 ## Dependencies
 None.
 
-C headers being used by implementation:
+C headers being used by the implementation:
 ```
 #include <stddef.h>
 #include <stdint.h>
@@ -144,6 +148,7 @@ C headers being used by implementation:
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <assert.h> // If asserts are enabled.
 ```
 
 Note, this library has a copy of the [JSMN JSON parser](https://github.com/zserge/jsmn) embedded in its source.

@@ -1,7 +1,7 @@
 /**
  * cgltf_write - a single-file glTF 2.0 writer written in C99.
  *
- * Version: 1.12
+ * Version: 1.14
  *
  * Website: https://github.com/jkuhlmann/cgltf
  *
@@ -15,19 +15,17 @@
  *
  * Reference:
  * `cgltf_result cgltf_write_file(const cgltf_options* options, const char*
- * path, const cgltf_data* data)` writes JSON to the given file path. Buffer
- * files and external images are not written out. `data` is not deallocated.
+ * path, const cgltf_data* data)` writes a glTF data to the given file path.
+ * If `options->type` is `cgltf_file_type_glb`, both JSON content and binary
+ * buffer of the given glTF data will be written in a GLB format.
+ * Otherwise, only the JSON part will be written.
+ * External buffers and images are not written out. `data` is not deallocated.
  *
  * `cgltf_size cgltf_write(const cgltf_options* options, char* buffer,
  * cgltf_size size, const cgltf_data* data)` writes JSON into the given memory
  * buffer. Returns the number of bytes written to `buffer`, including a null
  * terminator. If buffer is null, returns the number of bytes that would have
  * been written. `data` is not deallocated.
- *
- * To write custom JSON into the `extras` field, aggregate all the custom JSON
- * into a single buffer, then set `file_data` to this buffer. By supplying
- * start_offset and end_offset values for various objects, you can select a
- * range of characters within the aggregated buffer.
  */
 #ifndef CGLTF_WRITE_H_INCLUDED__
 #define CGLTF_WRITE_H_INCLUDED__
@@ -87,7 +85,10 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MATERIALS_EMISSIVE_STRENGTH (1 << 13)
 #define CGLTF_EXTENSION_FLAG_MESH_GPU_INSTANCING (1 << 14)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_IRIDESCENCE (1 << 15)
-#define CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION (1 << 16)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY (1 << 16)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION (1 << 17)
+#define CGLTF_EXTENSION_FLAG_TEXTURE_WEBP          (1 << 18)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION (1 << 19)
 
 typedef struct {
 	char* buffer;
@@ -151,13 +152,43 @@ typedef struct {
 		cgltf_write_line(context, "\"" label "\": {"); \
 		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
 		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
+		if (info.has_transform) { \
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
+			cgltf_write_texture_transform(context, &info.transform); \
+		} \
+		cgltf_write_line(context, "}"); }
+
+#define CGLTF_WRITE_NORMAL_TEXTURE_INFO(label, info) if (info.texture) { \
+		cgltf_write_line(context, "\"" label "\": {"); \
+		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
+		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
 		cgltf_write_floatprop(context, "scale", info.scale, 1.0f); \
 		if (info.has_transform) { \
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
 			cgltf_write_texture_transform(context, &info.transform); \
 		} \
-		cgltf_write_extras(context, &info.extras); \
 		cgltf_write_line(context, "}"); }
+
+#define CGLTF_WRITE_OCCLUSION_TEXTURE_INFO(label, info) if (info.texture) { \
+		cgltf_write_line(context, "\"" label "\": {"); \
+		CGLTF_WRITE_IDXPROP("index", info.texture, context->data->textures); \
+		cgltf_write_intprop(context, "texCoord", info.texcoord, 0); \
+		cgltf_write_floatprop(context, "strength", info.scale, 1.0f); \
+		if (info.has_transform) { \
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_TRANSFORM; \
+			cgltf_write_texture_transform(context, &info.transform); \
+		} \
+		cgltf_write_line(context, "}"); }
+
+#ifndef CGLTF_CONSTS
+#define GlbHeaderSize 12
+#define GlbChunkHeaderSize 8
+static const uint32_t GlbVersion = 2;
+static const uint32_t GlbMagic = 0x46546C67;
+static const uint32_t GlbMagicJsonChunk = 0x4E4F534A;
+static const uint32_t GlbMagicBinChunk = 0x004E4942;
+#define CGLTF_CONSTS
+#endif
 
 static void cgltf_write_indent(cgltf_write_context* context)
 {
@@ -209,14 +240,23 @@ static void cgltf_write_strprop(cgltf_write_context* context, const char* label,
 
 static void cgltf_write_extras(cgltf_write_context* context, const cgltf_extras* extras)
 {
-	cgltf_size length = extras->end_offset - extras->start_offset;
-	if (length > 0 && context->data->file_data)
+	if (extras->data)
 	{
-		char* json_string = ((char*) context->data->file_data) + extras->start_offset;
 		cgltf_write_indent(context);
-		CGLTF_SPRINTF("%s", "\"extras\": ");
-		CGLTF_SNPRINTF(length, "%.*s", (int)(extras->end_offset - extras->start_offset), json_string);
+		CGLTF_SPRINTF("\"extras\": %s", extras->data);
 		context->needs_comma = 1;
+	}
+	else
+	{
+		cgltf_size length = extras->end_offset - extras->start_offset;
+		if (length > 0 && context->data->json)
+		{
+			char* json_string = ((char*) context->data->json) + extras->start_offset;
+			cgltf_write_indent(context);
+			CGLTF_SPRINTF("%s", "\"extras\": ");
+			CGLTF_SNPRINTF(length, "%.*s", (int)(extras->end_offset - extras->start_offset), json_string);
+			context->needs_comma = 1;
+		}
 	}
 }
 
@@ -321,6 +361,21 @@ static int cgltf_int_from_component_type(cgltf_component_type ctype)
 	}
 }
 
+static int cgltf_int_from_primitive_type(cgltf_primitive_type ctype)
+{
+	switch (ctype)
+	{
+		case cgltf_primitive_type_points: return 0;
+		case cgltf_primitive_type_lines: return 1;
+		case cgltf_primitive_type_line_loop: return 2;
+		case cgltf_primitive_type_line_strip: return 3;
+		case cgltf_primitive_type_triangles: return 4;
+		case cgltf_primitive_type_triangle_strip: return 5;
+		case cgltf_primitive_type_triangle_fan: return 6;
+		default: return -1;
+	}
+}
+
 static const char* cgltf_str_from_alpha_mode(cgltf_alpha_mode alpha_mode)
 {
 	switch (alpha_mode)
@@ -416,7 +471,7 @@ static void cgltf_write_asset(cgltf_write_context* context, const cgltf_asset* a
 
 static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_primitive* prim)
 {
-	cgltf_write_intprop(context, "mode", (int) prim->type, 4);
+	cgltf_write_intprop(context, "mode", cgltf_int_from_primitive_type(prim->type), 4);
 	CGLTF_WRITE_IDXPROP("indices", prim->indices, context->data->accessors);
 	CGLTF_WRITE_IDXPROP("material", prim->material, context->data->materials);
 	cgltf_write_line(context, "\"attributes\": {");
@@ -453,7 +508,7 @@ static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_prim
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
 			if (prim->attributes_count == 0 || prim->indices == 0)
 			{
-				context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;				 
+				context->required_extension_flags |= CGLTF_EXTENSION_FLAG_DRACO_MESH_COMPRESSION;
 			}
 
 			cgltf_write_line(context, "\"KHR_draco_mesh_compression\": {");
@@ -607,6 +662,16 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION;
 	}
 
+	if (material->has_anisotropy)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY;
+	}
+
+	if (material->has_dispersion)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION;
+	}
+
 	if (material->has_pbr_metallic_roughness)
 	{
 		const cgltf_pbr_metallic_roughness* params = &material->pbr_metallic_roughness;
@@ -619,11 +684,10 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 		{
 			cgltf_write_floatarrayprop(context, "baseColorFactor", params->base_color_factor, 4);
 		}
-		cgltf_write_extras(context, &params->extras);
 		cgltf_write_line(context, "}");
 	}
 
-	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen || material->has_volume || material->has_emissive_strength || material->has_iridescence || material->has_diffuse_transmission)
+	if (material->unlit || material->has_pbr_specular_glossiness || material->has_clearcoat || material->has_ior || material->has_specular || material->has_transmission || material->has_sheen || material->has_volume || material->has_emissive_strength || material->has_iridescence || material->has_anisotropy || material->has_dispersion || material->has_diffuse_transmission)
 	{
 		cgltf_write_line(context, "\"extensions\": {");
 		if (material->has_clearcoat)
@@ -632,7 +696,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			cgltf_write_line(context, "\"KHR_materials_clearcoat\": {");
 			CGLTF_WRITE_TEXTURE_INFO("clearcoatTexture", params->clearcoat_texture);
 			CGLTF_WRITE_TEXTURE_INFO("clearcoatRoughnessTexture", params->clearcoat_roughness_texture);
-			CGLTF_WRITE_TEXTURE_INFO("clearcoatNormalTexture", params->clearcoat_normal_texture);
+			CGLTF_WRITE_NORMAL_TEXTURE_INFO("clearcoatNormalTexture", params->clearcoat_normal_texture);
 			cgltf_write_floatprop(context, "clearcoatFactor", params->clearcoat_factor, 0.0f);
 			cgltf_write_floatprop(context, "clearcoatRoughnessFactor", params->clearcoat_roughness_factor, 0.0f);
 			cgltf_write_line(context, "}");
@@ -675,7 +739,7 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			{
 				cgltf_write_floatarrayprop(context, "attenuationColor", params->attenuation_color, 3);
 			}
-			if (params->attenuation_distance < FLT_MAX) 
+			if (params->attenuation_distance < FLT_MAX)
 			{
 				cgltf_write_floatprop(context, "attenuationDistance", params->attenuation_distance, FLT_MAX);
 			}
@@ -747,11 +811,27 @@ static void cgltf_write_material(cgltf_write_context* context, const cgltf_mater
 			CGLTF_WRITE_TEXTURE_INFO("diffuseTransmissionColorTexture", params->diffuse_transmission_color_texture);
 			cgltf_write_line(context, "}");
 		}
+		if (material->has_anisotropy)
+		{
+			cgltf_write_line(context, "\"KHR_materials_anisotropy\": {");
+			const cgltf_anisotropy* params = &material->anisotropy;
+			cgltf_write_floatprop(context, "anisotropyFactor", params->anisotropy_strength, 0.f);
+			cgltf_write_floatprop(context, "anisotropyRotation", params->anisotropy_rotation, 0.f);
+			CGLTF_WRITE_TEXTURE_INFO("anisotropyTexture", params->anisotropy_texture);
+			cgltf_write_line(context, "}");
+		}
+		if (material->has_dispersion)
+		{
+			cgltf_write_line(context, "\"KHR_materials_dispersion\": {");
+			const cgltf_dispersion* params = &material->dispersion;
+			cgltf_write_floatprop(context, "dispersion", params->dispersion, 0.f);
+			cgltf_write_line(context, "}");
+		}
 		cgltf_write_line(context, "}");
 	}
 
-	CGLTF_WRITE_TEXTURE_INFO("normalTexture", material->normal_texture);
-	CGLTF_WRITE_TEXTURE_INFO("occlusionTexture", material->occlusion_texture);
+	CGLTF_WRITE_NORMAL_TEXTURE_INFO("normalTexture", material->normal_texture);
+	CGLTF_WRITE_OCCLUSION_TEXTURE_INFO("occlusionTexture", material->occlusion_texture);
 	CGLTF_WRITE_TEXTURE_INFO("emissiveTexture", material->emissive_texture);
 	if (cgltf_check_floatarray(material->emissive_factor, 3, 0.0f))
 	{
@@ -780,13 +860,21 @@ static void cgltf_write_texture(cgltf_write_context* context, const cgltf_textur
 	CGLTF_WRITE_IDXPROP("source", texture->image, context->data->images);
 	CGLTF_WRITE_IDXPROP("sampler", texture->sampler, context->data->samplers);
 
-	if (texture->has_basisu)
+	if (texture->has_basisu || texture->has_webp)
 	{
 		cgltf_write_line(context, "\"extensions\": {");
+		if (texture->has_basisu)
 		{
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_BASISU;
 			cgltf_write_line(context, "\"KHR_texture_basisu\": {");
 			CGLTF_WRITE_IDXPROP("source", texture->basisu_image, context->data->images);
+			cgltf_write_line(context, "}");
+		}
+		if (texture->has_webp)
+		{
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_TEXTURE_WEBP;
+			cgltf_write_line(context, "\"EXT_texture_webp\": {");
+			CGLTF_WRITE_IDXPROP("source", texture->webp_image, context->data->images);
 			cgltf_write_line(context, "}");
 		}
 		cgltf_write_line(context, "}");
@@ -957,7 +1045,6 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 
 		cgltf_write_line(context, "\"EXT_mesh_gpu_instancing\": {");
 		{
-			CGLTF_WRITE_IDXPROP("bufferView", node->mesh_gpu_instancing.buffer_view, context->data->buffer_views);
 			cgltf_write_line(context, "\"attributes\": {");
 			{
 				for (cgltf_size i = 0; i < node->mesh_gpu_instancing.attributes_count; ++i)
@@ -1024,14 +1111,11 @@ static void cgltf_write_accessor(cgltf_write_context* context, const cgltf_acces
 		cgltf_write_sizeprop(context, "byteOffset", (int)accessor->sparse.indices_byte_offset, 0);
 		CGLTF_WRITE_IDXPROP("bufferView", accessor->sparse.indices_buffer_view, context->data->buffer_views);
 		cgltf_write_intprop(context, "componentType", cgltf_int_from_component_type(accessor->sparse.indices_component_type), 0);
-		cgltf_write_extras(context, &accessor->sparse.indices_extras);
 		cgltf_write_line(context, "}");
 		cgltf_write_line(context, "\"values\": {");
 		cgltf_write_sizeprop(context, "byteOffset", (int)accessor->sparse.values_byte_offset, 0);
 		CGLTF_WRITE_IDXPROP("bufferView", accessor->sparse.values_buffer_view, context->data->buffer_views);
-		cgltf_write_extras(context, &accessor->sparse.values_extras);
 		cgltf_write_line(context, "}");
-		cgltf_write_extras(context, &accessor->sparse.extras);
 		cgltf_write_line(context, "}");
 	}
 	cgltf_write_extras(context, &accessor->extras);
@@ -1103,6 +1187,7 @@ static void cgltf_write_light(cgltf_write_context* context, const cgltf_light* l
 		cgltf_write_floatprop(context, "outerConeAngle", light->spot_outer_cone_angle, 3.14159265358979323846f/4.0f);
 		cgltf_write_line(context, "}");
 	}
+	cgltf_write_extras( context, &light->extras );
 	cgltf_write_line(context, "}");
 }
 
@@ -1116,6 +1201,47 @@ static void cgltf_write_variant(cgltf_write_context* context, const cgltf_materi
 	cgltf_write_line(context, "}");
 }
 
+static void cgltf_write_glb(FILE* file, const void* json_buf, const cgltf_size json_size, const void* bin_buf, const cgltf_size bin_size)
+{
+	char header[GlbHeaderSize];
+	char chunk_header[GlbChunkHeaderSize];
+	char json_pad[3] = { 0x20, 0x20, 0x20 };
+	char bin_pad[3] = { 0, 0, 0 };
+
+	cgltf_size json_padsize = (json_size % 4 != 0) ? 4 - json_size % 4 : 0;
+	cgltf_size bin_padsize = (bin_size % 4 != 0) ? 4 - bin_size % 4 : 0;
+	cgltf_size total_size = GlbHeaderSize + GlbChunkHeaderSize + json_size + json_padsize;
+	if (bin_buf != NULL && bin_size > 0) {
+		total_size += GlbChunkHeaderSize + bin_size + bin_padsize;
+	}
+
+	// Write a GLB header
+	memcpy(header, &GlbMagic, 4);
+	memcpy(header + 4, &GlbVersion, 4);
+	memcpy(header + 8, &total_size, 4);
+	fwrite(header, 1, GlbHeaderSize, file);
+
+	// Write a JSON chunk (header & data)
+	uint32_t json_chunk_size = (uint32_t)(json_size + json_padsize);
+	memcpy(chunk_header, &json_chunk_size, 4);
+	memcpy(chunk_header + 4, &GlbMagicJsonChunk, 4);
+	fwrite(chunk_header, 1, GlbChunkHeaderSize, file);
+
+	fwrite(json_buf, 1, json_size, file);
+	fwrite(json_pad, 1, json_padsize, file);
+
+	if (bin_buf != NULL && bin_size > 0) {
+		// Write a binary chunk (header & data)
+		uint32_t bin_chunk_size = (uint32_t)(bin_size + bin_padsize);
+		memcpy(chunk_header, &bin_chunk_size, 4);
+		memcpy(chunk_header + 4, &GlbMagicBinChunk, 4);
+		fwrite(chunk_header, 1, GlbChunkHeaderSize, file);
+
+		fwrite(bin_buf, 1, bin_size, file);
+		fwrite(bin_pad, 1, bin_padsize, file);
+	}
+}
+
 cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data)
 {
 	cgltf_size expected = cgltf_write(options, NULL, 0, data);
@@ -1124,13 +1250,18 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 	if (expected != actual) {
 		fprintf(stderr, "Error: expected %zu bytes but wrote %zu bytes.\n", expected, actual);
 	}
-	FILE* file = fopen(path, "wt");
+	FILE* file = fopen(path, "wb");
 	if (!file)
 	{
 		return cgltf_result_file_not_found;
 	}
 	// Note that cgltf_write() includes a null terminator, which we omit from the file content.
-	fwrite(buffer, actual - 1, 1, file);
+	if (options->type == cgltf_file_type_glb) {
+		cgltf_write_glb(file, buffer, actual - 1, data->bin, data->bin_size);
+	} else {
+		// Write a plain JSON file.
+		fwrite(buffer, actual - 1, 1, file);
+	}
 	fclose(file);
 	free(buffer);
 	return cgltf_result_success;
@@ -1177,6 +1308,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	if (extension_flags & CGLTF_EXTENSION_FLAG_TEXTURE_BASISU) {
 		cgltf_write_stritem(context, "KHR_texture_basisu");
 	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_TEXTURE_WEBP) {
+		cgltf_write_stritem(context, "EXT_texture_webp");
+	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_EMISSIVE_STRENGTH) {
 		cgltf_write_stritem(context, "KHR_materials_emissive_strength");
 	}
@@ -1186,8 +1320,14 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION) {
 		cgltf_write_stritem(context, "KHR_materials_diffuse_transmission");
 	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY) {
+		cgltf_write_stritem(context, "KHR_materials_anisotropy");
+	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MESH_GPU_INSTANCING) {
 		cgltf_write_stritem(context, "EXT_mesh_gpu_instancing");
+	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION) {
+		cgltf_write_stritem(context, "KHR_materials_dispersion");
 	}
 }
 
