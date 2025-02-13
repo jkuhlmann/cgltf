@@ -2711,32 +2711,37 @@ static int cgltf_json_strcmp(jsmntok_t const* tok, const uint8_t* json_chunk, co
 static int cgltf_json_to_int(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
-	char tmp[128];
-	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
-	strncpy(tmp, (const char*)json_chunk + tok->start, size);
-	tmp[size] = 0;
-	return CGLTF_ATOI(tmp);
+	int size = (int)(tok->end - tok->start);
+	uint8_t* ptr = (uint8_t*)json_chunk + tok->start + size;
+	const uint8_t tmp = *ptr;
+	*ptr = 0;
+	int res = CGLTF_ATOI((const char *)(json_chunk + tok->start));
+	*ptr = tmp;
+	return res;
 }
 
 static cgltf_size cgltf_json_to_size(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	CGLTF_CHECK_TOKTYPE_RET(*tok, JSMN_PRIMITIVE, 0);
-	char tmp[128];
-	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
-	strncpy(tmp, (const char*)json_chunk + tok->start, size);
-	tmp[size] = 0;
-	long long res = CGLTF_ATOLL(tmp);
+	int size = (int)(tok->end - tok->start);
+	uint8_t* ptr = (uint8_t*)json_chunk + tok->start + size;
+	const uint8_t tmp = *ptr;
+	*ptr = 0;
+	long long res = CGLTF_ATOLL((const char *)(json_chunk + tok->start));
+	*ptr = tmp;
 	return res < 0 ? 0 : (cgltf_size)res;
 }
 
 static cgltf_float cgltf_json_to_float(jsmntok_t const* tok, const uint8_t* json_chunk)
 {
 	CGLTF_CHECK_TOKTYPE(*tok, JSMN_PRIMITIVE);
-	char tmp[128];
-	int size = (size_t)(tok->end - tok->start) < sizeof(tmp) ? (int)(tok->end - tok->start) : (int)(sizeof(tmp) - 1);
-	strncpy(tmp, (const char*)json_chunk + tok->start, size);
-	tmp[size] = 0;
-	return (cgltf_float)CGLTF_ATOF(tmp);
+	int size = (int)(tok->end - tok->start);
+	uint8_t* ptr = (uint8_t*)json_chunk + tok->start + size;
+	const uint8_t tmp = *ptr;
+	*ptr = 0;
+	cgltf_float res = (cgltf_float)CGLTF_ATOF((const char *)(json_chunk + tok->start));
+	*ptr = tmp;
+	return res;
 }
 
 static cgltf_bool cgltf_json_to_bool(jsmntok_t const* tok, const uint8_t* json_chunk)
