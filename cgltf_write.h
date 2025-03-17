@@ -39,8 +39,8 @@
 extern "C" {
 #endif
 
-cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data);
-cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data);
+CGLTF_DEF cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data);
+CGLTF_DEF cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data);
 
 #ifdef __cplusplus
 }
@@ -1242,7 +1242,7 @@ static void cgltf_write_glb(FILE* file, const void* json_buf, const cgltf_size j
 	}
 }
 
-cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data)
+CGLTF_DEF cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, const cgltf_data* data)
 {
 	cgltf_size expected = cgltf_write(options, NULL, 0, data);
 	char* buffer = (char*) malloc(expected);
@@ -1331,7 +1331,7 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	}
 }
 
-cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data)
+CGLTF_DEF cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size size, const cgltf_data* data)
 {
 	(void)options;
 	cgltf_write_context ctx;
