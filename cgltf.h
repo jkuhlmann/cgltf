@@ -227,6 +227,7 @@ typedef enum cgltf_animation_path_type {
 	cgltf_animation_path_type_rotation,
 	cgltf_animation_path_type_scale,
 	cgltf_animation_path_type_weights,
+	cgltf_animation_path_type_pointer,
 	cgltf_animation_path_type_max_enum
 } cgltf_animation_path_type;
 
@@ -733,6 +734,7 @@ typedef struct cgltf_animation_channel {
 	cgltf_animation_sampler* sampler;
 	cgltf_node* target_node;
 	cgltf_animation_path_type target_path;
+	char* target_pointer;
 	cgltf_extras extras;
 	cgltf_size extensions_count;
 	cgltf_extension* extensions;
@@ -1772,7 +1774,7 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		{
 			cgltf_animation_channel* channel = &data->animations[i].channels[j];
 
-			if (!channel->target_node)
+			if (!channel->target_node && channel->target_path != cgltf_animation_path_type_pointer)
 			{
 				continue;
 			}
@@ -2087,6 +2089,7 @@ void cgltf_free(cgltf_data* data)
 
 		for (cgltf_size j = 0; j <  data->animations[i].channels_count; ++j)
 		{
+			data->memory.free_func(data->memory.user_data, data->animations[i].channels[j].target_pointer);
 			cgltf_free_extensions(data, data->animations[i].channels[j].extensions, data->animations[i].channels[j].extensions_count);
 			cgltf_free_extras(data, &data->animations[i].channels[j].extras);
 		}
@@ -4338,7 +4341,7 @@ static int cgltf_parse_json_diffuse_transmission(cgltf_options* options, jsmntok
 	// Defaults
 	cgltf_fill_float_array(out_diff_transmission->diffuse_transmission_color_factor, 3, 1.0f);
 	out_diff_transmission->diffuse_transmission_factor = 0.f;
-	
+
 	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
@@ -6017,6 +6020,34 @@ static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t 
 	return i;
 }
 
+static int cgltf_parse_json_animation_pointer(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_channel* out_channel)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "pointer") == 0)
+		{
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_channel->target_pointer);
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i + 1);
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_channel* out_channel)
 {
 	(void)options;
@@ -6073,6 +6104,10 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 					{
 						out_channel->target_path = cgltf_animation_path_type_weights;
 					}
+					else if (cgltf_json_strcmp(tokens + i, json_chunk, "pointer") == 0)
+					{
+						out_channel->target_path = cgltf_animation_path_type_pointer;
+					}
 					++i;
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
@@ -6081,7 +6116,42 @@ static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t 
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
 				{
-					i = cgltf_parse_json_unprocessed_extensions(options, tokens, i, json_chunk, &out_channel->extensions_count, &out_channel->extensions);
+					++i;
+
+					CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+					if (out_channel->extensions)
+					{
+						return CGLTF_ERROR_JSON;
+					}
+
+					int extensions_size = tokens[i].size;
+					++i;
+					out_channel->extensions = (cgltf_extension*)cgltf_calloc(options, sizeof(cgltf_extension), extensions_size);
+					out_channel->extensions_count = 0;
+
+					if (!out_channel->extensions)
+					{
+						return CGLTF_ERROR_NOMEM;
+					}
+
+					for (int k = 0; k < extensions_size; ++k)
+					{
+						CGLTF_CHECK_KEY(tokens[i]);
+
+						if (cgltf_json_strcmp(tokens + i, json_chunk, "KHR_animation_pointer") == 0)
+						{
+							i = cgltf_parse_json_animation_pointer(options, tokens, i + 1, json_chunk, out_channel);
+						}
+						else
+						{
+							i = cgltf_parse_json_unprocessed_extension(options, tokens, i, json_chunk, &(out_channel->extensions[out_channel->extensions_count++]));
+						}
+
+						if (i < 0)
+						{
+							return i;
+						}
+					}
 				}
 				else
 				{
