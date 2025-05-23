@@ -89,6 +89,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION (1 << 17)
 #define CGLTF_EXTENSION_FLAG_TEXTURE_WEBP          (1 << 18)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION (1 << 19)
+#define CGLTF_EXTENSION_FLAG_ANIMATION_POINTER (1 << 20)
 
 typedef struct {
 	char* buffer;
@@ -906,6 +907,8 @@ static const char* cgltf_write_str_path_type(cgltf_animation_path_type path_type
 		return "scale";
 	case cgltf_animation_path_type_weights:
 		return "weights";
+	case cgltf_animation_path_type_pointer:
+		return "pointer";
 	default:
 		break;
 	}
@@ -955,6 +958,21 @@ static void cgltf_write_animation_channel(cgltf_write_context* context, const cg
 	cgltf_write_line(context, "\"target\": {");
 	CGLTF_WRITE_IDXPROP("node", animation_channel->target_node, context->data->nodes);
 	cgltf_write_path_type(context, "path", animation_channel->target_path);
+	if (animation_channel->target_path == cgltf_animation_path_type_pointer &&
+		animation_channel->target_pointer != NULL)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_ANIMATION_POINTER;
+		cgltf_write_line(context, "\"extensions\": {");
+		cgltf_write_line(context, "\"KHR_animation_pointer\": {");
+		cgltf_write_strprop(context, "pointer", animation_channel->target_pointer);
+		cgltf_write_line(context, "}");
+		cgltf_write_line(context, "}");
+	}
+	else
+	{
+		// Can't use the pointer enum with a null json pointer.
+		assert(animation_channel->target_path != cgltf_animation_path_type_pointer);
+	}
 	cgltf_write_line(context, "}");
 	cgltf_write_extras(context, &animation_channel->extras);
 	cgltf_write_line(context, "}");
@@ -1328,6 +1346,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION) {
 		cgltf_write_stritem(context, "KHR_materials_dispersion");
+	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_ANIMATION_POINTER) {
+		cgltf_write_stritem(context, "KHR_animation_pointer");
 	}
 }
 
