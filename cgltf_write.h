@@ -194,6 +194,11 @@ static void cgltf_write_indent(cgltf_write_context* context)
 {
 	if (context->needs_comma)
 	{
+#ifdef CGLTF_MINIFY
+		CGLTF_SPRINTF(",");
+		context->needs_comma = 0;
+	}
+#else
 		CGLTF_SPRINTF(",\n");
 		context->needs_comma = 0;
 	}
@@ -205,6 +210,7 @@ static void cgltf_write_indent(cgltf_write_context* context)
 	{
 		CGLTF_SPRINTF("%s", context->indent);
 	}
+#endif /* #ifdef CGLTF_MINIFY */
 }
 
 static void cgltf_write_line(cgltf_write_context* context, const char* line)
@@ -325,7 +331,12 @@ static void cgltf_write_floatarrayprop(cgltf_write_context* context, const char*
 	{
 		if (i != 0)
 		{
-			CGLTF_SPRINTF(", %.*g", CGLTF_DECIMAL_DIG, vals[i]);
+#ifdef CGLTF_MINIFY
+			CGLTF_SPRINTF(",%.*g",
+#else
+			CGLTF_SPRINTF(", %.*g",
+#endif
+				CGLTF_DECIMAL_DIG, vals[i]);
 		}
 		else
 		{
@@ -1532,7 +1543,11 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 
 	cgltf_write_extras(context, &data->extras);
 
+#ifdef CGLTF_MINIFY
+	CGLTF_SPRINTF("}");
+#else
 	CGLTF_SPRINTF("\n}\n");
+#endif
 
 	// snprintf does not include the null terminator in its return value, so be sure to include it
 	// in the returned byte count.
