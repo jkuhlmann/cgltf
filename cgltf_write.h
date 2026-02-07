@@ -89,6 +89,7 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION (1 << 17)
 #define CGLTF_EXTENSION_FLAG_TEXTURE_WEBP          (1 << 18)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION (1 << 19)
+#define CGLTF_EXTENSION_FLAG_GAUSSIAN_SPLATTING     (1 << 20)
 
 typedef struct {
 	char* buffer;
@@ -523,6 +524,18 @@ static void cgltf_write_primitive(cgltf_write_context* context, const cgltf_prim
 			cgltf_write_line(context, "}");
 		}
 
+		if (prim->has_gaussian_splatting)
+		{
+			context->extension_flags |= CGLTF_EXTENSION_FLAG_GAUSSIAN_SPLATTING;
+			cgltf_write_line(context, "\"KHR_gaussian_splatting\": {");
+			cgltf_write_strprop(context, "kernel", prim->gaussian_splatting.kernel);
+			cgltf_write_strprop(context, "colorSpace", prim->gaussian_splatting.color_space);
+			cgltf_write_strprop(context, "sortingMethod", prim->gaussian_splatting.sorting_method);
+			cgltf_write_strprop(context, "projection", prim->gaussian_splatting.projection);
+			cgltf_write_extras(context, &prim->gaussian_splatting.extras);
+			cgltf_write_line(context, "}");
+		}
+		
 		if (prim->mappings_count > 0)
 		{
 			context->extension_flags |= CGLTF_EXTENSION_FLAG_MATERIALS_VARIANTS;
@@ -1328,6 +1341,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION) {
 		cgltf_write_stritem(context, "KHR_materials_dispersion");
+	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_GAUSSIAN_SPLATTING) {
+		cgltf_write_stritem(context, "KHR_gaussian_splatting");
 	}
 }
 
