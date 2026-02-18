@@ -580,7 +580,16 @@ static void cgltf_write_buffer_view(cgltf_write_context* context, const cgltf_bu
 	cgltf_write_sizeprop(context, "byteLength", view->size, (cgltf_size)-1);
 	cgltf_write_sizeprop(context, "byteOffset", view->offset, 0);
 	cgltf_write_sizeprop(context, "byteStride", view->stride, 0);
-	// NOTE: We skip writing "target" because the spec says its usage can be inferred.
+	switch (view->type) {
+		case cgltf_buffer_view_type_indices:
+			cgltf_write_sizeprop(context, "target", 34963, 0);
+			break;
+		case cgltf_buffer_view_type_vertices:
+			cgltf_write_sizeprop(context, "target", 34962, 0);
+			break;
+		default:
+			break;
+	}
 	cgltf_write_extras(context, &view->extras);
 	cgltf_write_line(context, "}");
 }
