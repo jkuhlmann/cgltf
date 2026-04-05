@@ -1682,41 +1682,45 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
-		if (data->meshes[i].weights)
+		cgltf_mesh* mesh = &data->meshes[i];
+
+		if (mesh->weights)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives_count && data->meshes[i].primitives[0].targets_count != data->meshes[i].weights_count, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(mesh->primitives_count && mesh->primitives[0].targets_count != mesh->weights_count, cgltf_result_invalid_gltf);
 		}
 
-		if (data->meshes[i].target_names)
+		if (mesh->target_names)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives_count && data->meshes[i].primitives[0].targets_count != data->meshes[i].target_names_count, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(mesh->primitives_count && mesh->primitives[0].targets_count != mesh->target_names_count, cgltf_result_invalid_gltf);
 		}
 
-		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
+		for (cgltf_size j = 0; j < mesh->primitives_count; ++j)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count, cgltf_result_invalid_gltf);
+			cgltf_primitive* prim = &mesh->primitives[j];
 
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes_count == 0, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(prim->type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(prim->targets_count != mesh->primitives[0].targets_count, cgltf_result_invalid_gltf);
 
-			cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
+			CGLTF_ASSERT_IF(prim->attributes_count == 0, cgltf_result_invalid_gltf);
+
+			cgltf_accessor* first = prim->attributes[0].data;
 
 			CGLTF_ASSERT_IF(first->count == 0, cgltf_result_invalid_gltf);
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+			for (cgltf_size k = 0; k < prim->attributes_count; ++k)
 			{
-				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(prim->attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
 			}
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
+			for (cgltf_size k = 0; k < prim->targets_count; ++k)
 			{
-				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
+				for (cgltf_size m = 0; m < prim->targets[k].attributes_count; ++m)
 				{
-					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
+					CGLTF_ASSERT_IF(prim->targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
 				}
 			}
 
-			cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
+			cgltf_accessor* indices = prim->indices;
 
 			CGLTF_ASSERT_IF(indices &&
 				indices->component_type != cgltf_component_type_r_8u &&
@@ -1733,9 +1737,9 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				CGLTF_ASSERT_IF(index_bound >= first->count, cgltf_result_data_too_short);
 			}
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].mappings_count; ++k)
+			for (cgltf_size k = 0; k < prim->mappings_count; ++k)
 			{
-				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(prim->mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
 			}
 		}
 	}
