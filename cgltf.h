@@ -1741,6 +1741,123 @@ cgltf_result cgltf_validate(cgltf_data* data)
 			{
 				CGLTF_ASSERT_IF(prim->mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
 			}
+
+			if (prim->has_gaussian_splatting)
+			{
+				CGLTF_ASSERT_IF(prim->type != cgltf_primitive_type_points, cgltf_result_invalid_gltf);
+
+				cgltf_gaussian_splatting* gs = &prim->gaussian_splatting;
+				CGLTF_ASSERT_IF(!gs->kernel, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!gs->color_space, cgltf_result_invalid_gltf);
+
+				cgltf_bool has_position = 0;
+				cgltf_bool has_rotation = 0;
+				cgltf_bool has_scale = 0;
+				cgltf_bool has_opacity = 0;
+				cgltf_bool has_sh_0_coef_0 = 0;
+				cgltf_uint bits_sh_1 = 0;
+				cgltf_uint bits_sh_2 = 0;
+				cgltf_uint bits_sh_3 = 0;
+
+				for (cgltf_size k = 0; k < prim->attributes_count; ++k)
+				{
+					cgltf_attribute* attr = &prim->attributes[k];
+					size_t len = strlen(attr->name);
+
+					if (len == 8 && strncmp(attr->name, "POSITION", 8) == 0)
+					{
+						has_position = 1;
+					}
+					else if (len == 31 && strncmp(attr->name, "KHR_gaussian_splatting:ROTATION", 31) == 0)
+					{
+						has_rotation = 1;
+					}
+					else if (len == 28 && strncmp(attr->name, "KHR_gaussian_splatting:SCALE", 28) == 0)
+					{
+						has_scale = 1;
+					}
+					else if (len == 30 && strncmp(attr->name, "KHR_gaussian_splatting:OPACITY", 30) == 0)
+					{
+						has_opacity = 1;
+					}
+					else if (len == 41)
+					{
+						if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_0_COEF_0", 41) == 0)
+						{
+							has_sh_0_coef_0 = 1;
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_0", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 0);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_1", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 1);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_2", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 2);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_0", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 0);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_1", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 1);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_2", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 2);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_3", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 3);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_4", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 4);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_0", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 0);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_1", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 1);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_2", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 2);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_3", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 3);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_4", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 4);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_5", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 5);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_6", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 6);
+						}
+					}
+				}
+
+				CGLTF_ASSERT_IF(!has_position, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_rotation, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_scale, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_opacity, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_sh_0_coef_0, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_1 || bits_sh_2 || bits_sh_3) && bits_sh_1 != 0x3, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_2 || bits_sh_3) && bits_sh_2 != 0x5, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(bits_sh_3 && bits_sh_3 != 0x7, cgltf_result_invalid_gltf);
+			}
 		}
 	}
 
