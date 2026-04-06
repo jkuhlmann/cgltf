@@ -598,6 +598,16 @@ typedef struct cgltf_draco_mesh_compression {
 	cgltf_size attributes_count;
 } cgltf_draco_mesh_compression;
 
+typedef struct cgltf_gaussian_splatting {
+    char* kernel;
+    char* color_space;
+    char* sorting_method;
+    char* projection;
+    cgltf_extras extras;
+    cgltf_size extensions_count;
+    cgltf_extension* extensions;
+} cgltf_gaussian_splatting;
+
 typedef struct cgltf_mesh_gpu_instancing {
 	cgltf_attribute* attributes;
 	cgltf_size attributes_count;
@@ -616,6 +626,8 @@ typedef struct cgltf_primitive {
 	cgltf_draco_mesh_compression draco_mesh_compression;
 	cgltf_material_mapping* mappings;
 	cgltf_size mappings_count;
+	cgltf_bool has_gaussian_splatting;
+	cgltf_gaussian_splatting gaussian_splatting;
 	cgltf_size extensions_count;
 	cgltf_extension* extensions;
 } cgltf_primitive;
@@ -1670,41 +1682,45 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 	for (cgltf_size i = 0; i < data->meshes_count; ++i)
 	{
-		if (data->meshes[i].weights)
+		cgltf_mesh* mesh = &data->meshes[i];
+
+		if (mesh->weights)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives_count && data->meshes[i].primitives[0].targets_count != data->meshes[i].weights_count, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(mesh->primitives_count && mesh->primitives[0].targets_count != mesh->weights_count, cgltf_result_invalid_gltf);
 		}
 
-		if (data->meshes[i].target_names)
+		if (mesh->target_names)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives_count && data->meshes[i].primitives[0].targets_count != data->meshes[i].target_names_count, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(mesh->primitives_count && mesh->primitives[0].targets_count != mesh->target_names_count, cgltf_result_invalid_gltf);
 		}
 
-		for (cgltf_size j = 0; j < data->meshes[i].primitives_count; ++j)
+		for (cgltf_size j = 0; j < mesh->primitives_count; ++j)
 		{
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets_count != data->meshes[i].primitives[0].targets_count, cgltf_result_invalid_gltf);
+			cgltf_primitive* prim = &mesh->primitives[j];
 
-			CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes_count == 0, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(prim->type == cgltf_primitive_type_invalid, cgltf_result_invalid_gltf);
+			CGLTF_ASSERT_IF(prim->targets_count != mesh->primitives[0].targets_count, cgltf_result_invalid_gltf);
 
-			cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
+			CGLTF_ASSERT_IF(prim->attributes_count == 0, cgltf_result_invalid_gltf);
+
+			cgltf_accessor* first = prim->attributes[0].data;
 
 			CGLTF_ASSERT_IF(first->count == 0, cgltf_result_invalid_gltf);
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+			for (cgltf_size k = 0; k < prim->attributes_count; ++k)
 			{
-				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(prim->attributes[k].data->count != first->count, cgltf_result_invalid_gltf);
 			}
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
+			for (cgltf_size k = 0; k < prim->targets_count; ++k)
 			{
-				for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
+				for (cgltf_size m = 0; m < prim->targets[k].attributes_count; ++m)
 				{
-					CGLTF_ASSERT_IF(data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
+					CGLTF_ASSERT_IF(prim->targets[k].attributes[m].data->count != first->count, cgltf_result_invalid_gltf);
 				}
 			}
 
-			cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
+			cgltf_accessor* indices = prim->indices;
 
 			CGLTF_ASSERT_IF(indices &&
 				indices->component_type != cgltf_component_type_r_8u &&
@@ -1721,9 +1737,147 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				CGLTF_ASSERT_IF(index_bound >= first->count, cgltf_result_data_too_short);
 			}
 
-			for (cgltf_size k = 0; k < data->meshes[i].primitives[j].mappings_count; ++k)
+			for (cgltf_size k = 0; k < prim->mappings_count; ++k)
 			{
-				CGLTF_ASSERT_IF(data->meshes[i].primitives[j].mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(prim->mappings[k].variant >= data->variants_count, cgltf_result_invalid_gltf);
+			}
+
+			if (prim->has_gaussian_splatting)
+			{
+				CGLTF_ASSERT_IF(prim->type != cgltf_primitive_type_points, cgltf_result_invalid_gltf);
+
+				cgltf_gaussian_splatting* gs = &prim->gaussian_splatting;
+				CGLTF_ASSERT_IF(!gs->kernel, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!gs->color_space, cgltf_result_invalid_gltf);
+
+				cgltf_bool has_position = 0;
+				cgltf_bool has_rotation = 0;
+				cgltf_bool has_scale = 0;
+				cgltf_bool has_opacity = 0;
+				cgltf_bool has_sh_0_coef_0 = 0;
+				cgltf_uint bits_sh_1 = 0;
+				cgltf_uint bits_sh_2 = 0;
+				cgltf_uint bits_sh_3 = 0;
+
+				for (cgltf_size k = 0; k < prim->attributes_count; ++k)
+				{
+					cgltf_attribute* attr = &prim->attributes[k];
+					size_t len = strlen(attr->name);
+					cgltf_type type = attr->data->type;
+
+					if (len == 8 && strncmp(attr->name, "POSITION", 8) == 0)
+					{
+						has_position = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+					}
+					else if (len == 31 && strncmp(attr->name, "KHR_gaussian_splatting:ROTATION", 31) == 0)
+					{
+						has_rotation = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec4, cgltf_result_invalid_gltf);
+					}
+					else if (len == 28 && strncmp(attr->name, "KHR_gaussian_splatting:SCALE", 28) == 0)
+					{
+						has_scale = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+					}
+					else if (len == 30 && strncmp(attr->name, "KHR_gaussian_splatting:OPACITY", 30) == 0)
+					{
+						has_opacity = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_scalar, cgltf_result_invalid_gltf);
+					}
+					else if (len == 41)
+					{
+						if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_0_COEF_0", 41) == 0)
+						{
+							has_sh_0_coef_0 = 1;
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_0", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_1", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_2", 41) == 0)
+						{
+							bits_sh_1 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_0", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_1", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_2", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_3", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 3);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_4", 41) == 0)
+						{
+							bits_sh_2 |= (1 << 4);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_0", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_1", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_2", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_3", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 3);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_4", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 4);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_5", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 5);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_6", 41) == 0)
+						{
+							bits_sh_3 |= (1 << 6);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
+						}
+					}
+				}
+
+				CGLTF_ASSERT_IF(!has_position, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_rotation, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_scale, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_opacity, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(!has_sh_0_coef_0, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_1 || bits_sh_2 || bits_sh_3) && bits_sh_1 != 0x7, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_2 || bits_sh_3) && bits_sh_2 != 0x1F, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(bits_sh_3 && bits_sh_3 != 0x7F, cgltf_result_invalid_gltf);
 			}
 		}
 	}
@@ -3139,6 +3293,55 @@ static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmnt
 	return i;
 }
 
+static int cgltf_parse_json_gaussian_splatting(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_gaussian_splatting* out_gaussian_splatting)
+{
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	int size = tokens[i].size;
+	++i;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens + i, json_chunk, "kernel") == 0)
+		{
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_gaussian_splatting->kernel);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "colorSpace") == 0)
+		{
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_gaussian_splatting->color_space);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "sortingMethod") == 0)
+		{
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_gaussian_splatting->sorting_method);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "projection") == 0)
+		{
+			i = cgltf_parse_json_string(options, tokens, i + 1, json_chunk, &out_gaussian_splatting->projection);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extras") == 0)
+		{
+			i = cgltf_parse_json_extras(options, tokens, i + 1, json_chunk, &out_gaussian_splatting->extras);
+		}
+		else if (cgltf_json_strcmp(tokens + i, json_chunk, "extensions") == 0)
+		{
+			i = cgltf_parse_json_unprocessed_extensions(options, tokens, i, json_chunk, &out_gaussian_splatting->extensions_count, &out_gaussian_splatting->extensions);
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
 static int cgltf_parse_json_mesh_gpu_instancing(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_mesh_gpu_instancing* out_mesh_gpu_instancing)
 {
 	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
@@ -3409,6 +3612,11 @@ static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* t
 				{
 					out_prim->has_draco_mesh_compression = 1;
 					i = cgltf_parse_json_draco_mesh_compression(options, tokens, i + 1, json_chunk, &out_prim->draco_mesh_compression);
+				}
+				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_gaussian_splatting") == 0)
+				{
+					out_prim->has_gaussian_splatting = 1;
+					i = cgltf_parse_json_gaussian_splatting(options, tokens, i + 1, json_chunk, &out_prim->gaussian_splatting);
 				}
 				else if (cgltf_json_strcmp(tokens+i, json_chunk, "KHR_materials_variants") == 0)
 				{
