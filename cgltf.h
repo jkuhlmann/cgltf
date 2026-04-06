@@ -1875,9 +1875,9 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				CGLTF_ASSERT_IF(!has_scale, cgltf_result_invalid_gltf);
 				CGLTF_ASSERT_IF(!has_opacity, cgltf_result_invalid_gltf);
 				CGLTF_ASSERT_IF(!has_sh_0_coef_0, cgltf_result_invalid_gltf);
-				CGLTF_ASSERT_IF((bits_sh_1 || bits_sh_2 || bits_sh_3) && bits_sh_1 != 0x3, cgltf_result_invalid_gltf);
-				CGLTF_ASSERT_IF((bits_sh_2 || bits_sh_3) && bits_sh_2 != 0x5, cgltf_result_invalid_gltf);
-				CGLTF_ASSERT_IF(bits_sh_3 && bits_sh_3 != 0x7, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_1 || bits_sh_2 || bits_sh_3) && bits_sh_1 != 0x7, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF((bits_sh_2 || bits_sh_3) && bits_sh_2 != 0x1F, cgltf_result_invalid_gltf);
+				CGLTF_ASSERT_IF(bits_sh_3 && bits_sh_3 != 0x7F, cgltf_result_invalid_gltf);
 			}
 		}
 	}
