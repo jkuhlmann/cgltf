@@ -1763,88 +1763,109 @@ cgltf_result cgltf_validate(cgltf_data* data)
 				{
 					cgltf_attribute* attr = &prim->attributes[k];
 					size_t len = strlen(attr->name);
+					cgltf_type type = attr->data->type;
 
 					if (len == 8 && strncmp(attr->name, "POSITION", 8) == 0)
 					{
 						has_position = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 					}
 					else if (len == 31 && strncmp(attr->name, "KHR_gaussian_splatting:ROTATION", 31) == 0)
 					{
 						has_rotation = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec4, cgltf_result_invalid_gltf);
 					}
 					else if (len == 28 && strncmp(attr->name, "KHR_gaussian_splatting:SCALE", 28) == 0)
 					{
 						has_scale = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 					}
 					else if (len == 30 && strncmp(attr->name, "KHR_gaussian_splatting:OPACITY", 30) == 0)
 					{
 						has_opacity = 1;
+						CGLTF_ASSERT_IF(type != cgltf_type_scalar, cgltf_result_invalid_gltf);
 					}
 					else if (len == 41)
 					{
 						if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_0_COEF_0", 41) == 0)
 						{
 							has_sh_0_coef_0 = 1;
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_0", 41) == 0)
 						{
 							bits_sh_1 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_1", 41) == 0)
 						{
 							bits_sh_1 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_1_COEF_2", 41) == 0)
 						{
 							bits_sh_1 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_0", 41) == 0)
 						{
 							bits_sh_2 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_1", 41) == 0)
 						{
 							bits_sh_2 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_2", 41) == 0)
 						{
 							bits_sh_2 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_3", 41) == 0)
 						{
 							bits_sh_2 |= (1 << 3);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_2_COEF_4", 41) == 0)
 						{
 							bits_sh_2 |= (1 << 4);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_0", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 0);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_1", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 1);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_2", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 2);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_3", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 3);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_4", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 4);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_5", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 5);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 						else if (strncmp(attr->name, "KHR_gaussian_splatting:SH_DEGREE_3_COEF_6", 41) == 0)
 						{
 							bits_sh_3 |= (1 << 6);
+							CGLTF_ASSERT_IF(type != cgltf_type_vec3, cgltf_result_invalid_gltf);
 						}
 					}
 				}
