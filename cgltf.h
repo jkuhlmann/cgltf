@@ -2261,13 +2261,19 @@ static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_ty
 		{
 			// note: glTF spec doesn't currently define normalized conversions for 32-bit integers
 			case cgltf_component_type_r_16:
-				return *((const int16_t*) in) / (cgltf_float)32767;
+			{
+				int16_t x16 = *((const int16_t*)in);
+				return x16 == -32768 ? -1.0f : x16 * (1.f / (cgltf_float)32767);
+			}
 			case cgltf_component_type_r_16u:
-				return *((const uint16_t*) in) / (cgltf_float)65535;
+				return *((const uint16_t*) in) * (1.f / (cgltf_float)65535);
 			case cgltf_component_type_r_8:
-				return *((const int8_t*) in) / (cgltf_float)127;
+			{
+				int8_t x8 = *((const int8_t*)in);
+				return x8 == -128 ? -1 : *((const int8_t*) in) * (1.f / (cgltf_float)127);
+			}
 			case cgltf_component_type_r_8u:
-				return *((const uint8_t*) in) / (cgltf_float)255;
+				return *((const uint8_t*) in) / (1.f / (cgltf_float)255);
 			default:
 				return 0;
 		}
