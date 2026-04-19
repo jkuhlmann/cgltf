@@ -926,11 +926,15 @@ cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const
 
 #ifdef CGLTF_IMPLEMENTATION
 
-#include <assert.h> /* For assert */
 #include <string.h> /* For strncpy */
 #include <stdio.h>  /* For fopen */
 #include <limits.h> /* For UINT_MAX etc */
 #include <float.h>  /* For FLT_MAX */
+
+#if !defined(CGLTF_ASSERT)
+#include <assert.h> /* For assert */
+#define CGLTF_ASSERT assert
+#endif
 
 #if !defined(CGLTF_MALLOC) || !defined(CGLTF_FREE) || !defined(CGLTF_ATOI) || !defined(CGLTF_ATOF) || !defined(CGLTF_ATOLL)
 #include <stdlib.h> /* For malloc, free, atoi, atof */
@@ -1589,7 +1593,7 @@ static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_s
 }
 
 #if CGLTF_VALIDATE_ENABLE_ASSERTS
-#define CGLTF_ASSERT_IF(cond, result) assert(!(cond)); if (cond) return result;
+#define CGLTF_ASSERT_IF(cond, result) CGLTF_ASSERT(!(cond)); if (cond) return result;
 #else
 #define CGLTF_ASSERT_IF(cond, result) if (cond) return result;
 #endif
@@ -2581,97 +2585,97 @@ cgltf_size cgltf_accessor_read_index(const cgltf_accessor* accessor, cgltf_size 
 
 cgltf_size cgltf_mesh_index(const cgltf_data* data, const cgltf_mesh* object)
 {
-	assert(object && (cgltf_size)(object - data->meshes) < data->meshes_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->meshes) < data->meshes_count);
 	return (cgltf_size)(object - data->meshes);
 }
 
 cgltf_size cgltf_material_index(const cgltf_data* data, const cgltf_material* object)
 {
-	assert(object && (cgltf_size)(object - data->materials) < data->materials_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->materials) < data->materials_count);
 	return (cgltf_size)(object - data->materials);
 }
 
 cgltf_size cgltf_accessor_index(const cgltf_data* data, const cgltf_accessor* object)
 {
-	assert(object && (cgltf_size)(object - data->accessors) < data->accessors_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->accessors) < data->accessors_count);
 	return (cgltf_size)(object - data->accessors);
 }
 
 cgltf_size cgltf_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object)
 {
-	assert(object && (cgltf_size)(object - data->buffer_views) < data->buffer_views_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->buffer_views) < data->buffer_views_count);
 	return (cgltf_size)(object - data->buffer_views);
 }
 
 cgltf_size cgltf_buffer_index(const cgltf_data* data, const cgltf_buffer* object)
 {
-	assert(object && (cgltf_size)(object - data->buffers) < data->buffers_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->buffers) < data->buffers_count);
 	return (cgltf_size)(object - data->buffers);
 }
 
 cgltf_size cgltf_image_index(const cgltf_data* data, const cgltf_image* object)
 {
-	assert(object && (cgltf_size)(object - data->images) < data->images_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->images) < data->images_count);
 	return (cgltf_size)(object - data->images);
 }
 
 cgltf_size cgltf_texture_index(const cgltf_data* data, const cgltf_texture* object)
 {
-	assert(object && (cgltf_size)(object - data->textures) < data->textures_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->textures) < data->textures_count);
 	return (cgltf_size)(object - data->textures);
 }
 
 cgltf_size cgltf_sampler_index(const cgltf_data* data, const cgltf_sampler* object)
 {
-	assert(object && (cgltf_size)(object - data->samplers) < data->samplers_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->samplers) < data->samplers_count);
 	return (cgltf_size)(object - data->samplers);
 }
 
 cgltf_size cgltf_skin_index(const cgltf_data* data, const cgltf_skin* object)
 {
-	assert(object && (cgltf_size)(object - data->skins) < data->skins_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->skins) < data->skins_count);
 	return (cgltf_size)(object - data->skins);
 }
 
 cgltf_size cgltf_camera_index(const cgltf_data* data, const cgltf_camera* object)
 {
-	assert(object && (cgltf_size)(object - data->cameras) < data->cameras_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->cameras) < data->cameras_count);
 	return (cgltf_size)(object - data->cameras);
 }
 
 cgltf_size cgltf_light_index(const cgltf_data* data, const cgltf_light* object)
 {
-	assert(object && (cgltf_size)(object - data->lights) < data->lights_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->lights) < data->lights_count);
 	return (cgltf_size)(object - data->lights);
 }
 
 cgltf_size cgltf_node_index(const cgltf_data* data, const cgltf_node* object)
 {
-	assert(object && (cgltf_size)(object - data->nodes) < data->nodes_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->nodes) < data->nodes_count);
 	return (cgltf_size)(object - data->nodes);
 }
 
 cgltf_size cgltf_scene_index(const cgltf_data* data, const cgltf_scene* object)
 {
-	assert(object && (cgltf_size)(object - data->scenes) < data->scenes_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->scenes) < data->scenes_count);
 	return (cgltf_size)(object - data->scenes);
 }
 
 cgltf_size cgltf_animation_index(const cgltf_data* data, const cgltf_animation* object)
 {
-	assert(object && (cgltf_size)(object - data->animations) < data->animations_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - data->animations) < data->animations_count);
 	return (cgltf_size)(object - data->animations);
 }
 
 cgltf_size cgltf_animation_sampler_index(const cgltf_animation* animation, const cgltf_animation_sampler* object)
 {
-	assert(object && (cgltf_size)(object - animation->samplers) < animation->samplers_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - animation->samplers) < animation->samplers_count);
 	return (cgltf_size)(object - animation->samplers);
 }
 
 cgltf_size cgltf_animation_channel_index(const cgltf_animation* animation, const cgltf_animation_channel* object)
 {
-	assert(object && (cgltf_size)(object - animation->channels) < animation->channels_count);
+	CGLTF_ASSERT(object && (cgltf_size)(object - animation->channels) < animation->channels_count);
 	return (cgltf_size)(object - animation->channels);
 }
 
