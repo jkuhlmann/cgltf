@@ -1588,6 +1588,13 @@ static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_s
 	return bound;
 }
 
+static cgltf_size cgltf_calc_required_size(cgltf_size offset, cgltf_size stride, cgltf_size count)
+{
+	if (stride && (SIZE_MAX - offset) / stride < count)
+		return SIZE_MAX;
+	return offset + stride * count;
+}
+
 #if CGLTF_VALIDATE_ENABLE_ASSERTS
 #define CGLTF_ASSERT_IF(cond, result) assert(!(cond)); if (cond) return result;
 #else
@@ -1600,14 +1607,16 @@ cgltf_result cgltf_validate(cgltf_data* data)
 	{
 		cgltf_accessor* accessor = &data->accessors[i];
 
-		CGLTF_ASSERT_IF(data->accessors[i].component_type == cgltf_component_type_invalid, cgltf_result_invalid_gltf);
-		CGLTF_ASSERT_IF(data->accessors[i].type == cgltf_type_invalid, cgltf_result_invalid_gltf);
+		CGLTF_ASSERT_IF(accessor->component_type == cgltf_component_type_invalid, cgltf_result_invalid_gltf);
+		CGLTF_ASSERT_IF(accessor->type == cgltf_type_invalid, cgltf_result_invalid_gltf);
+		CGLTF_ASSERT_IF(accessor->count == 0, cgltf_result_invalid_gltf);
 
 		cgltf_size element_size = cgltf_calc_size(accessor->type, accessor->component_type);
 
 		if (accessor->buffer_view)
 		{
-			cgltf_size req_size = accessor->offset + accessor->stride * (accessor->count - 1) + element_size;
+			cgltf_size req_size = cgltf_calc_required_size(accessor->offset, accessor->stride, accessor->count - 1);
+			req_size = (req_size < SIZE_MAX - element_size) ? req_size + element_size : SIZE_MAX;
 
 			CGLTF_ASSERT_IF(accessor->buffer_view->size < req_size, cgltf_result_data_too_short);
 		}
@@ -1616,9 +1625,11 @@ cgltf_result cgltf_validate(cgltf_data* data)
 		{
 			cgltf_accessor_sparse* sparse = &accessor->sparse;
 
+			CGLTF_ASSERT_IF(sparse->count == 0, cgltf_result_invalid_gltf);
+
 			cgltf_size indices_component_size = cgltf_component_size(sparse->indices_component_type);
-			cgltf_size indices_req_size = sparse->indices_byte_offset + indices_component_size * sparse->count;
-			cgltf_size values_req_size = sparse->values_byte_offset + element_size * sparse->count;
+			cgltf_size indices_req_size = cgltf_calc_required_size(sparse->indices_byte_offset, indices_component_size, sparse->count);
+			cgltf_size values_req_size = cgltf_calc_required_size(sparse->values_byte_offset, element_size, sparse->count);
 
 			CGLTF_ASSERT_IF(sparse->indices_buffer_view->size < indices_req_size ||
 							sparse->values_buffer_view->size < values_req_size, cgltf_result_data_too_short);
@@ -4382,7 +4393,7 @@ static int cgltf_parse_json_diffuse_transmission(cgltf_options* options, jsmntok
 	// Defaults
 	cgltf_fill_float_array(out_diff_transmission->diffuse_transmission_color_factor, 3, 1.0f);
 	out_diff_transmission->diffuse_transmission_factor = 0.f;
-	
+
 	for (int j = 0; j < size; ++j)
 	{
 		CGLTF_CHECK_KEY(tokens[i]);
