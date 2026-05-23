@@ -687,6 +687,10 @@ typedef struct cgltf_light {
 	cgltf_extras extras;
 } cgltf_light;
 
+typedef struct cgltf_node_visibility {
+	cgltf_bool visible;
+} cgltf_node_visibility;
+
 struct cgltf_node {
 	char* name;
 	cgltf_node* parent;
@@ -707,6 +711,8 @@ struct cgltf_node {
 	cgltf_float scale[3];
 	cgltf_float matrix[16];
 	cgltf_extras extras;
+	cgltf_bool has_visibility;
+	cgltf_node_visibility visibility;
 	cgltf_bool has_mesh_gpu_instancing;
 	cgltf_mesh_gpu_instancing mesh_gpu_instancing;
 	cgltf_size extensions_count;
@@ -3123,6 +3129,42 @@ static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmnt
 		{
 			++i;
 			out_draco_mesh_compression->buffer_view = CGLTF_PTRINDEX(cgltf_buffer_view, cgltf_json_to_int(tokens + i, json_chunk));
+			++i;
+		}
+		else
+		{
+			i = cgltf_skip_json(tokens, i+1);
+		}
+
+		if (i < 0)
+		{
+			return i;
+		}
+	}
+
+	return i;
+}
+
+static int cgltf_parse_json_node_visibility(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_node_visibility* out_visibility)
+{
+	(void)options;
+
+	CGLTF_CHECK_TOKTYPE(tokens[i], JSMN_OBJECT);
+
+	int size = tokens[i].size;
+	++i;
+
+	// Default values
+	out_visibility->visible = 1;
+
+	for (int j = 0; j < size; ++j)
+	{
+		CGLTF_CHECK_KEY(tokens[i]);
+
+		if (cgltf_json_strcmp(tokens+i, json_chunk, "visible") == 0)
+		{
+			++i;
+			out_visibility->visible = cgltf_json_to_bool(tokens+i, json_chunk);
 			++i;
 		}
 		else
@@ -5888,6 +5930,11 @@ static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens
 							return i;
 						}
 					}
+				}
+				else if (cgltf_json_strcmp(tokens + i, json_chunk, "KHR_node_visibility") == 0)
+				{
+					out_node->has_visibility = 1;
+					i = cgltf_parse_json_node_visibility(options, tokens, i + 1, json_chunk, &out_node->visibility);
 				}
 				else if (cgltf_json_strcmp(tokens + i, json_chunk, "EXT_mesh_gpu_instancing") == 0)
 				{

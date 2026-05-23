@@ -81,14 +81,15 @@ cgltf_size cgltf_write(const cgltf_options* options, char* buffer, cgltf_size si
 #define CGLTF_EXTENSION_FLAG_MATERIALS_SHEEN        (1 << 9)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_VARIANTS     (1 << 10)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_VOLUME       (1 << 11)
-#define CGLTF_EXTENSION_FLAG_TEXTURE_BASISU        (1 << 12)
+#define CGLTF_EXTENSION_FLAG_TEXTURE_BASISU         (1 << 12)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_EMISSIVE_STRENGTH (1 << 13)
-#define CGLTF_EXTENSION_FLAG_MESH_GPU_INSTANCING (1 << 14)
-#define CGLTF_EXTENSION_FLAG_MATERIALS_IRIDESCENCE (1 << 15)
-#define CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY (1 << 16)
-#define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION (1 << 17)
-#define CGLTF_EXTENSION_FLAG_TEXTURE_WEBP          (1 << 18)
+#define CGLTF_EXTENSION_FLAG_MESH_GPU_INSTANCING    (1 << 14)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_IRIDESCENCE  (1 << 15)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_ANISOTROPY   (1 << 16)
+#define CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION   (1 << 17)
+#define CGLTF_EXTENSION_FLAG_TEXTURE_WEBP           (1 << 18)
 #define CGLTF_EXTENSION_FLAG_MATERIALS_DIFFUSE_TRANSMISSION (1 << 19)
+#define CGLTF_EXTENSION_FLAG_NODE_VISIBILITY        (1 << 20)
 
 typedef struct {
 	char* buffer;
@@ -1026,7 +1027,11 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 		CGLTF_WRITE_IDXPROP("skin", node->skin, context->data->skins);
 	}
 
-	bool has_extension = node->light || (node->has_mesh_gpu_instancing && node->mesh_gpu_instancing.attributes_count > 0);
+	bool has_extension =
+		node->light ||
+		(node->has_visibility && !node->visibility.visible) ||
+		(node->has_mesh_gpu_instancing && node->mesh_gpu_instancing.attributes_count > 0);
+
 	if(has_extension)
 		cgltf_write_line(context, "\"extensions\": {");
 
@@ -1035,6 +1040,14 @@ static void cgltf_write_node(cgltf_write_context* context, const cgltf_node* nod
 		context->extension_flags |= CGLTF_EXTENSION_FLAG_LIGHTS_PUNCTUAL;
 		cgltf_write_line(context, "\"KHR_lights_punctual\": {");
 		CGLTF_WRITE_IDXPROP("light", node->light, context->data->lights);
+		cgltf_write_line(context, "}");
+	}
+
+	if (node->has_visibility && !node->visibility.visible)
+	{
+		context->extension_flags |= CGLTF_EXTENSION_FLAG_NODE_VISIBILITY;
+		cgltf_write_line(context, "\"KHR_node_visibility\": {");
+		cgltf_write_boolprop_optional(context, "visible", (bool)node->visibility.visible, true);
 		cgltf_write_line(context, "}");
 	}
 
@@ -1328,6 +1341,9 @@ static void cgltf_write_extensions(cgltf_write_context* context, uint32_t extens
 	}
 	if (extension_flags & CGLTF_EXTENSION_FLAG_MATERIALS_DISPERSION) {
 		cgltf_write_stritem(context, "KHR_materials_dispersion");
+	}
+	if (extension_flags & CGLTF_EXTENSION_FLAG_NODE_VISIBILITY) {
+		cgltf_write_stritem(context, "KHR_node_visibility");
 	}
 }
 
