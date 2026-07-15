@@ -1819,10 +1819,13 @@ cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* 
 		return cgltf_result_invalid_options;
 	}
 
-	if (*dest_size + 1 < json_size)
+	if (*dest_size <= json_size)
 	{
-		strncpy(dest, data->json + extras->start_offset, *dest_size - 1);
-		dest[*dest_size - 1] = 0;
+		if (*dest_size > 0)
+		{
+			strncpy(dest, data->json + extras->start_offset, *dest_size - 1);
+			dest[*dest_size - 1] = 0;
+		}
 	}
 	else
 	{

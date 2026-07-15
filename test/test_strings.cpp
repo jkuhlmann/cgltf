@@ -10,6 +10,29 @@ static void check(const char* a, const char* b, cgltf_size size) {
     }
 }
 
+static void check_extras_copy(cgltf_size capacity, const char* expected)
+{
+    static const char json[] = "abcd";
+    cgltf_data data = {};
+    cgltf_extras extras = {};
+    unsigned char storage[8];
+    cgltf_size size = capacity;
+
+    data.json = json;
+    extras.end_offset = sizeof(json) - 1;
+
+    memset(storage, 0xcc, sizeof(storage));
+    storage[capacity] = 0x58;
+
+    cgltf_result result = cgltf_copy_extras_json(&data, &extras, (char*)storage, &size);
+    if (result != cgltf_result_success || storage[capacity] != 0x58 ||
+        (capacity > 0 && strcmp((char*)storage, expected) != 0))
+    {
+        fprintf(stderr, "Extras copy mismatch for capacity %zu.\n", capacity);
+        exit(1);
+    }
+}
+
 int main(int, char**)
 {
     char string[64];
@@ -52,6 +75,28 @@ int main(int, char**)
     strcpy(string, "%%2F%X%AX%%2F%%");
     size = cgltf_decode_uri(string);
     check(string, "%/%X%AX%/%%", size);
+
+    // cgltf_copy_extras_json
+    static const char extras_json[] = "abcd";
+    cgltf_data data = {};
+    cgltf_extras extras = {};
+
+    data.json = extras_json;
+    extras.end_offset = sizeof(extras_json) - 1;
+    size = 0;
+
+    if (cgltf_copy_extras_json(&data, &extras, NULL, &size) != cgltf_result_success || size != sizeof(extras_json))
+    {
+        fprintf(stderr, "Extras size mismatch.\n");
+        exit(1);
+    }
+
+    check_extras_copy(5, "abcd");
+    check_extras_copy(4, "abc");
+    check_extras_copy(3, "ab");
+    check_extras_copy(2, "a");
+    check_extras_copy(1, "");
+    check_extras_copy(0, NULL);
 
     return 0;
 }
