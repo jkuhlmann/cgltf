@@ -1550,6 +1550,18 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 	return cgltf_result_success;
 }
 
+/* Component reads below address accessor data at `buffer data + accessor offset +
+   bufferView offset`. The glTF spec only guarantees byte alignment for that
+   address, so dereferencing a type-punned pointer is undefined when the address
+   is not aligned for the component type (UBSan: "load of misaligned address").
+   Copy the bytes out instead of casting the pointer. */
+static int8_t cgltf_component_copy_i8(const void* in) { int8_t v; memcpy(&v, in, sizeof v); return v; }
+static uint8_t cgltf_component_copy_u8(const void* in) { uint8_t v; memcpy(&v, in, sizeof v); return v; }
+static int16_t cgltf_component_copy_i16(const void* in) { int16_t v; memcpy(&v, in, sizeof v); return v; }
+static uint16_t cgltf_component_copy_u16(const void* in) { uint16_t v; memcpy(&v, in, sizeof v); return v; }
+static uint32_t cgltf_component_copy_u32(const void* in) { uint32_t v; memcpy(&v, in, sizeof v); return v; }
+static float cgltf_component_copy_f32(const void* in) { float v; memcpy(&v, in, sizeof v); return v; }
+
 static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_size offset, cgltf_component_type component_type, cgltf_size count)
 {
 	char* data = (char*)buffer_view->buffer->data + offset + buffer_view->offset;
@@ -1568,7 +1580,7 @@ static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_s
 	case cgltf_component_type_r_16u:
 		for (size_t i = 0; i < count; ++i)
 		{
-			cgltf_size v = ((unsigned short*)data)[i];
+			cgltf_size v = cgltf_component_copy_u16(data + i * 2);
 			bound = bound > v ? bound : v;
 		}
 		break;
@@ -1576,7 +1588,7 @@ static cgltf_size cgltf_calc_index_bound(cgltf_buffer_view* buffer_view, cgltf_s
 	case cgltf_component_type_r_32u:
 		for (size_t i = 0; i < count; ++i)
 		{
-			cgltf_size v = ((unsigned int*)data)[i];
+			cgltf_size v = cgltf_component_copy_u32(data + i * 4);
 			bound = bound > v ? bound : v;
 		}
 		break;
@@ -2219,15 +2231,15 @@ static cgltf_ssize cgltf_component_read_integer(const void* in, cgltf_component_
 	switch (component_type)
 	{
 		case cgltf_component_type_r_16:
-			return *((const int16_t*) in);
+			return cgltf_component_copy_i16(in);
 		case cgltf_component_type_r_16u:
-			return *((const uint16_t*) in);
+			return cgltf_component_copy_u16(in);
 		case cgltf_component_type_r_32u:
-			return *((const uint32_t*) in);
+			return cgltf_component_copy_u32(in);
 		case cgltf_component_type_r_8:
-			return *((const int8_t*) in);
+			return cgltf_component_copy_i8(in);
 		case cgltf_component_type_r_8u:
-			return *((const uint8_t*) in);
+			return cgltf_component_copy_u8(in);
 		default:
 			return 0;
 	}
@@ -2238,11 +2250,11 @@ static cgltf_size cgltf_component_read_index(const void* in, cgltf_component_typ
 	switch (component_type)
 	{
 		case cgltf_component_type_r_16u:
-			return *((const uint16_t*) in);
+			return cgltf_component_copy_u16(in);
 		case cgltf_component_type_r_32u:
-			return *((const uint32_t*) in);
+			return cgltf_component_copy_u32(in);
 		case cgltf_component_type_r_8u:
-			return *((const uint8_t*) in);
+			return cgltf_component_copy_u8(in);
 		default:
 			return 0;
 	}
@@ -2252,7 +2264,7 @@ static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_ty
 {
 	if (component_type == cgltf_component_type_r_32f)
 	{
-		return *((const float*) in);
+		return cgltf_component_copy_f32(in);
 	}
 
 	if (normalized)
@@ -2261,13 +2273,13 @@ static cgltf_float cgltf_component_read_float(const void* in, cgltf_component_ty
 		{
 			// note: glTF spec doesn't currently define normalized conversions for 32-bit integers
 			case cgltf_component_type_r_16:
-				return *((const int16_t*) in) / (cgltf_float)32767;
+				return cgltf_component_copy_i16(in) / (cgltf_float)32767;
 			case cgltf_component_type_r_16u:
-				return *((const uint16_t*) in) / (cgltf_float)65535;
+				return cgltf_component_copy_u16(in) / (cgltf_float)65535;
 			case cgltf_component_type_r_8:
-				return *((const int8_t*) in) / (cgltf_float)127;
+				return cgltf_component_copy_i8(in) / (cgltf_float)127;
 			case cgltf_component_type_r_8u:
-				return *((const uint8_t*) in) / (cgltf_float)255;
+				return cgltf_component_copy_u8(in) / (cgltf_float)255;
 			default:
 				return 0;
 		}
@@ -2493,19 +2505,19 @@ static cgltf_uint cgltf_component_read_uint(const void* in, cgltf_component_type
 	switch (component_type)
 	{
 		case cgltf_component_type_r_8:
-			return *((const int8_t*) in);
+			return cgltf_component_copy_i8(in);
 
 		case cgltf_component_type_r_8u:
-			return *((const uint8_t*) in);
+			return cgltf_component_copy_u8(in);
 
 		case cgltf_component_type_r_16:
-			return *((const int16_t*) in);
+			return cgltf_component_copy_i16(in);
 
 		case cgltf_component_type_r_16u:
-			return *((const uint16_t*) in);
+			return cgltf_component_copy_u16(in);
 
 		case cgltf_component_type_r_32u:
-			return *((const uint32_t*) in);
+			return cgltf_component_copy_u32(in);
 
 		default:
 			return 0;
