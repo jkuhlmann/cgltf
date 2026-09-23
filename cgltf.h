@@ -1518,6 +1518,16 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 
 			if (comma && comma - uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
 			{
+				// The declared buffer size comes from the file and is used as the size of the
+				// allocation that cgltf_load_buffer_base64 performs. Bound it by what the base64
+				// payload can actually decode to (3 bytes per 4 characters) so a small file
+				// cannot request an arbitrarily large allocation.
+				cgltf_size payload_len = (cgltf_size)strlen(comma + 1);
+				cgltf_size max_decoded = (payload_len / 4) * 3 + 3;
+				if (data->buffers[i].size > max_decoded)
+				{
+					return cgltf_result_data_too_short;
+				}
 				cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, comma + 1, &data->buffers[i].data);
 				data->buffers[i].data_free_method = cgltf_data_free_method_memory_free;
 
