@@ -119,8 +119,9 @@ typedef struct {
 		context->tmp = snprintf ( context->cursor, context->remaining, __VA_ARGS__ ); \
 		context->chars_written += context->tmp; \
 		if (context->cursor) { \
-			context->cursor += context->tmp; \
-			context->remaining -= context->tmp; \
+			cgltf_size written = CGLTF_MIN(context->tmp, context->remaining); \
+			context->cursor += written; \
+			context->remaining -= written; \
 		} }
 
 #define CGLTF_SNPRINTF(length, ...) { \
