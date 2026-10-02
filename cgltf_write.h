@@ -1253,6 +1253,7 @@ cgltf_result cgltf_write_file(const cgltf_options* options, const char* path, co
 	FILE* file = fopen(path, "wb");
 	if (!file)
 	{
+		free(buffer);
 		return cgltf_result_file_not_found;
 	}
 	// Note that cgltf_write() includes a null terminator, which we omit from the file content.
